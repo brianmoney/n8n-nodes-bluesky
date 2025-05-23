@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/brian/n8n-nodes-bluesky-enhanced.git"
+    "url": "git+https://github.com/brian/n8n-nodes-bluesky-enhanced.git"
   },
   "engines": {
     "node": ">=18.10",

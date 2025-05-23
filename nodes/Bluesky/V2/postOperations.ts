@@ -36,6 +36,16 @@ export const postProperties: INodeProperties[] = [
 				action: 'Like a post',
 			},
 			{
+				name: 'Quote a Post',
+				value: 'quote',
+				action: 'Quote a post',
+			},
+			{
+				name: 'Reply to a Post',
+				value: 'reply',
+				action: 'Reply to a post',
+			},
+			{
 				name: 'Repost a Post',
 				value: 'repost',
 				action: 'Repost a post',
@@ -44,16 +54,6 @@ export const postProperties: INodeProperties[] = [
 				name: 'Unline a Post',
 				value: 'deleteLike',
 				action: 'Unlike a post',
-			},
-			{
-				name: 'Reply to a Post',
-				value: 'reply',
-				action: 'Reply to a post',
-			},
-			{
-				name: 'Quote a Post',
-				value: 'quote',
-				action: 'Quote a post',
 			},
 		],
 		type: 'options',
