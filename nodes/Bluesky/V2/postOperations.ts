@@ -232,85 +232,13 @@ export const postProperties: INodeProperties[] = [
 	},
 ];
 
+// Helper types for the post function
+// Helper type for mediaItems
 interface MediaItem {
 	media: {
 		binaryPropertyName: string;
 		altText?: string;
 	};
-}
-
-interface MediaItemsInput {
-	mediaItems?: MediaItem[];
-}
-
-// Helper function to upload an image and return its BlobRef and alt text
-async function uploadImageHelper(
-	executeFunctions: IExecuteFunctions, // Keep IExecuteFunctions for type clarity
-	agent: BskyAgent,
-	binaryPropertyName: string,
-	altText?: string,
-	itemIndex: number = 0, // for getBinaryDataBuffer
-): Promise<{ blob: ComAtprotoRepoUploadBlob.OutputSchema['blob']; altText: string }> {
-	try {
-		console.log(`[DEBUG] Starting image upload for binary property: ${binaryPropertyName}`);
-		// First check if binary data exists for this item
-		const items = executeFunctions.getInputData();
-		console.log(`[DEBUG] Total input items: ${items.length}`);
-		
-		if (!items[itemIndex]) {
-			console.log(`[DEBUG] No item found at index ${itemIndex}`);
-			throw new NodeOperationError(executeFunctions.getNode(), `No item found at index ${itemIndex}`);
-		}
-		
-		const item = items[itemIndex];
-		console.log(`[DEBUG] Binary properties available: ${Object.keys(item.binary || {}).join(', ') || 'none'}`);
-		
-		if (!item?.binary || !item.binary[binaryPropertyName]) {
-			const node = executeFunctions.getNode();
-			throw new NodeOperationError(node, 
-				`Binary data property '${binaryPropertyName}' not found for item at index ${itemIndex}. ` +
-				`Available binary properties: ${Object.keys(item.binary || {}).join(', ') || 'none'}`
-			);
-		}
-		
-		// Log info about the binary data
-		console.log(`[DEBUG] Binary data found for property ${binaryPropertyName}`);
-		if (item.binary[binaryPropertyName].mimeType) {
-			console.log(`[DEBUG] MIME type: ${item.binary[binaryPropertyName].mimeType}`);
-		}
-		if (item.binary[binaryPropertyName].fileSize) {
-			console.log(`[DEBUG] File size: ${item.binary[binaryPropertyName].fileSize}`);
-		}
-		
-		// Access helpers from the passed IExecuteFunctions context
-		console.log(`[DEBUG] Getting binary data buffer...`);
-		const binaryData = await executeFunctions.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
-		
-		if (!binaryData || !Buffer.isBuffer(binaryData)) {
-			const node = executeFunctions.getNode();
-			throw new NodeOperationError(node, 
-				`Invalid binary data received from property '${binaryPropertyName}'. ` +
-				`Expected a Buffer but got ${typeof binaryData}.`
-			);
-		}
-
-		console.log(`[DEBUG] Binary data buffer retrieved, size: ${binaryData.length} bytes`);
-		console.log(`[DEBUG] Uploading blob to Bluesky...`);
-		const uploadResponse = await agent.uploadBlob(binaryData);
-		console.log(`[DEBUG] Upload successful. Blob reference received`);
-
-		return {
-			blob: uploadResponse.data.blob,
-			altText: altText || '',
-		};
-	} catch (error) {
-		console.error(`[ERROR] Upload failed: ${error.message}`, error);
-		const node = executeFunctions.getNode();
-		throw new NodeOperationError(node, error, {
-			message: `Failed to upload image from binary property '${binaryPropertyName}': ${error.message}`,
-			itemIndex: itemIndex,
-		});
-	}
 }
 
 export async function postOperation(
@@ -326,7 +254,7 @@ export async function postOperation(
 		fetchOpenGraphTags: boolean | undefined;
 	},
 	includeMedia?: boolean,
-	mediaItemsInput?: MediaItemsInput,
+	mediaItemsInput?: { mediaItems?: any[] },
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 	const node = this.getNode();
@@ -342,76 +270,97 @@ export async function postOperation(
 		createdAt: new Date().toISOString(),
 	};
 
-	if (includeMedia && mediaItemsInput?.mediaItems && mediaItemsInput.mediaItems.length > 0) {
-		if (mediaItemsInput.mediaItems.length > 4) {
-			throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
-		}
-		
-		// Log the media items configuration for debugging
-		console.log(`Attempting to process ${mediaItemsInput.mediaItems.length} media items`);
-		for (const item of mediaItemsInput.mediaItems) {
-			console.log(`Media item configuration: Binary property: ${item.media.binaryPropertyName}, Alt text: ${item.media.altText || '(none)'}`);
-		}
-		
-		const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
-		
-		try {
-			// Check if we have access to binary data
-			const items = this.getInputData();
-			if (!items || items.length === 0) {
-				throw new NodeOperationError(node, 'No input items available');
+	// Enhanced mediaItems handling
+	if (includeMedia === true) {
+		// Make sure we have valid media items to process
+		if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
+			console.log('[DEBUG] Include media is enabled, but no valid media items were found');
+		} else {
+			// Valid media items available
+			if (mediaItemsInput.mediaItems.length > 4) {
+				throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
 			}
 			
-			// For each media item defined in the node configuration
-			for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
-				const mediaItem: MediaItem = mediaItemsInput.mediaItems[i];
-				const binaryPropName = mediaItem.media.binaryPropertyName;
-				
-				console.log(`Processing media item ${i + 1}: Binary property name: ${binaryPropName}`);
-				
-				// Validate binary property exists before trying to upload
-				const inputItem = items[0]; // Always use first item for now
-				if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
-					throw new NodeOperationError(
-						node,
-						`Binary property '${binaryPropName}' not found in input data. ` +
-						`Make sure the previous node provides binary data with this property name.`
-					);
+			console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
+			const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
+			
+			try {
+				// Check if we have access to binary data
+				const items = this.getInputData();
+				if (!items || items.length === 0) {
+					throw new NodeOperationError(node, 'No input items available');
 				}
 				
-				// Upload the image
-				const uploadedImage = await uploadImageHelper(
-					this, // Pass the IExecuteFunctions context
-					agent,
-					binaryPropName,
-					mediaItem.media.altText,
-					0, // Always use first item for now 
-				);
+				// For each media item defined in the node configuration
+				for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
+					const mediaItem: MediaItem = mediaItemsInput.mediaItems[i];
+					
+					// Validate media item structure
+					if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
+						console.log(`[DEBUG] Skipping invalid media item at index ${i}`);
+						continue;
+					}
+					
+					const binaryPropName = mediaItem.media.binaryPropertyName;
+					console.log(`[DEBUG] Processing media item ${i + 1}: Binary property name: ${binaryPropName}`);
+					
+					// Validate binary property exists before trying to upload
+					const inputItem = items[0]; // Always use first item for now
+					if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
+						throw new NodeOperationError(
+							node,
+							`Binary property '${binaryPropName}' not found in input data. ` +
+							`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
+						);
+					}
+					
+					// Access helpers from the passed IExecuteFunctions context
+					console.log(`[DEBUG] Getting binary data buffer...`);
+					const binaryData = await this.helpers.getBinaryDataBuffer(0, binaryPropName);
+					
+					if (!binaryData || !Buffer.isBuffer(binaryData)) {
+						throw new NodeOperationError(node, 
+							`Invalid binary data received from property '${binaryPropName}'. ` +
+							`Expected a Buffer but got ${typeof binaryData}.`
+						);
+					}
+					
+					console.log(`[DEBUG] Binary data buffer retrieved, size: ${binaryData.length} bytes`);
+					console.log(`[DEBUG] Uploading blob to Bluesky...`);
+					
+					const uploadResponse = await agent.uploadBlob(binaryData);
+					console.log(`[DEBUG] Upload successful!`);
+					
+					// Add to our images array
+					imagesForEmbed.push({ 
+						image: uploadResponse.data.blob, 
+						alt: mediaItem.media.altText || '' 
+					});
+					
+					console.log(`[DEBUG] Successfully processed media item ${i + 1}`);
+				}
 				
-				console.log(`Successfully uploaded image ${i + 1}`);
-				imagesForEmbed.push({ image: uploadedImage.blob, alt: uploadedImage.altText });
+				// If images were uploaded successfully, add them to the post
+				if (imagesForEmbed.length > 0) {
+					console.log(`[DEBUG] Adding ${imagesForEmbed.length} images to post embed`);
+					postData.embed = {
+						$type: 'app.bsky.embed.images',
+						images: imagesForEmbed,
+					};
+				} else {
+					console.log('[DEBUG] No images were successfully uploaded');
+				}
+			} catch (error) {
+				console.error('[ERROR] Error processing media:', error);
+				throw new NodeOperationError(node, `Failed to process media: ${error.message}`);
 			}
-			
-			// If images were uploaded successfully, add them to the post
-			if (imagesForEmbed.length > 0) {
-				console.log(`Adding ${imagesForEmbed.length} images to post embed`);
-				postData.embed = {
-					$type: 'app.bsky.embed.images',
-					images: imagesForEmbed,
-				};
-			} else {
-				console.log('No images were successfully uploaded');
-			}
-		} catch (error) {
-			console.error('Error processing media:', error);
-			throw new NodeOperationError(node, `Failed to process media: ${error.message}`);
 		}
 	} else if (websiteCard?.uri) {
+		// Website card handling
 		let thumbBlob: ComAtprotoRepoUploadBlob.OutputSchema['blob'] | undefined = undefined;
 
 		if (websiteCard.thumbnailBinaryProperty) {
 			try {
-				// Use this.helpers here as well
 				const binaryData = await this.helpers.getBinaryDataBuffer(0, websiteCard.thumbnailBinaryProperty);
 				const uploadResponse = await agent.uploadBlob(binaryData);
 				thumbBlob = uploadResponse.data.blob;
@@ -457,14 +406,17 @@ export async function postOperation(
 			$type: 'app.bsky.embed.external',
 			external: {
 				uri: websiteCard.uri,
-				title: websiteCard.title || '', // Ensure title is not undefined
-				description: websiteCard.description || '', // Ensure description is not undefined
+				title: websiteCard.title || '',
+				description: websiteCard.description || '',
 				thumb: thumbBlob,
 			},
 		};
 	}
 
+	// Create the post
+	console.log('[DEBUG] Creating post with data:', JSON.stringify(postData, null, 2));
 	const postResponse: { uri: string; cid: string } = await agent.post(postData);
+	console.log('[DEBUG] Post created successfully:', postResponse);
 
 	returnData.push({
 		json: {

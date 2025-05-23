@@ -160,17 +160,33 @@ export class BlueskyV2 implements INodeType {
 							// The 'mediaItems' parameter is a fixedCollection with typeOptions.multiple = true.
 							// This means it will return an array of objects, where each object has a 'media' property.
 							// Each 'media' property then contains 'binaryPropertyName' and 'altText'.
-							const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []) as Array<{
-								media: {
-									binaryPropertyName: string;
-									altText?: string;
-								};
-							}>;
-							mediaItemsInput = { mediaItems: rawMediaItemsArray };
-							
-							console.log(`[DEBUG] Media configuration received: ${mediaItemsInput.mediaItems.length} items`);
-							for (const item of mediaItemsInput.mediaItems) {
-								console.log(`[DEBUG] Media item - Binary property: ${item.media.binaryPropertyName}, Alt text: ${item.media.altText || '(none)'}`);
+							try {
+								const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []);
+								// Always ensure mediaItems is a valid array
+								mediaItemsInput = { mediaItems: Array.isArray(rawMediaItemsArray) ? rawMediaItemsArray : [] };
+								
+								console.log(`[DEBUG] Media items type: ${typeof mediaItemsInput.mediaItems}, isArray: ${Array.isArray(mediaItemsInput.mediaItems)}`);
+								
+								// Make sure mediaItems is an array before trying to iterate
+								if (Array.isArray(mediaItemsInput.mediaItems) && mediaItemsInput.mediaItems.length > 0) {
+									console.log(`[DEBUG] Media configuration received: ${mediaItemsInput.mediaItems.length} items`);
+									for (let j = 0; j < mediaItemsInput.mediaItems.length; j++) {
+										const item = mediaItemsInput.mediaItems[j];
+										if (item && item.media) {
+											console.log(`[DEBUG] Media item ${j+1} - Binary property: ${item.media.binaryPropertyName}, Alt text: ${item.media.altText || '(none)'}`);
+										} else {
+											console.log(`[DEBUG] Invalid media item detected at index ${j}:`, item);
+										}
+									}
+								} else {
+									console.log(`[DEBUG] No valid media items found in configuration`);
+									// Ensure we have a valid array even if empty
+									mediaItemsInput = { mediaItems: [] };
+								}
+							} catch (error) {
+								console.error(`[ERROR] Error processing media items:`, error);
+								// Ensure mediaItems is a valid array in case of any error
+								mediaItemsInput = { mediaItems: [] };
 							}
 						}
 

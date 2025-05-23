@@ -5,6 +5,12 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-05-23
+
+### Fixed
+- Fixed "mediaItems is not iterable" error that prevented media from being uploaded in some cases
+- Added defensive programming to ensure that mediaItems is always a valid array
+
 ## [1.1.3] - 2025-05-23
 
 ### Fixed
