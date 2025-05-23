@@ -158,12 +158,29 @@ export class BlueskyV2 implements INodeType {
 						let mediaItemsInput: any = undefined;
 						if (includeMedia) {
 							// The 'mediaItems' parameter is a fixedCollection with typeOptions.multiple = true.
-							// This means it will return an array of objects, where each object has a 'media' property.
-							// Each 'media' property then contains 'binaryPropertyName' and 'altText'.
+							// For fixedCollection, n8n returns an object like: { media: [array_of_items] }
+							// where 'media' is the collection name and the array contains the actual items.
 							try {
-								const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []);
-								// Always ensure mediaItems is a valid array
-								mediaItemsInput = { mediaItems: Array.isArray(rawMediaItemsArray) ? rawMediaItemsArray : [] };
+								const rawMediaItems = this.getNodeParameter('mediaItems', i, {}) as any;
+								console.log(`[DEBUG] Raw media items received:`, JSON.stringify(rawMediaItems, null, 2));
+								console.log(`[DEBUG] Raw media items type: ${typeof rawMediaItems}, keys: ${Object.keys(rawMediaItems || {}).join(', ')}`);
+								console.log(`[DEBUG] Raw media items.media exists: ${rawMediaItems && rawMediaItems.media !== undefined}, isArray: ${Array.isArray(rawMediaItems?.media)}`);
+								
+								// Extract the media array from the fixedCollection structure
+								let mediaArray: any[] = [];
+								if (rawMediaItems && rawMediaItems.media && Array.isArray(rawMediaItems.media)) {
+									mediaArray = rawMediaItems.media;
+								}
+								
+								// Transform the array to match our expected structure
+								const transformedItems = mediaArray.map((item: any) => ({
+									media: {
+										binaryPropertyName: item.binaryPropertyName || 'data',
+										altText: item.altText || ''
+									}
+								}));
+								
+								mediaItemsInput = { mediaItems: transformedItems };
 								
 								console.log(`[DEBUG] Media items type: ${typeof mediaItemsInput.mediaItems}, isArray: ${Array.isArray(mediaItemsInput.mediaItems)}`);
 								
