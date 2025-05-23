@@ -7,6 +7,11 @@ export const graphProperties: INodeProperties[] = [
 		name: 'operation',
 		type: 'options',
 		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: ['graph'],
+			},
+		},
 		options: [
 			{
 				name: 'Mute Thread',
