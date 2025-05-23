@@ -5,6 +5,12 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-05-23
+
+### Fixed
+- Fixed binary data handling for media uploads, allowing images to be properly attached to posts.
+- Added detailed error logging for media uploads to help diagnose any issues.
+
 ## [1.1.2] - 2025-05-23
 
 ### Fixed
