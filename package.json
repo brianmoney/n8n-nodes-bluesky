@@ -1,14 +1,17 @@
 {
   "name": "n8n-nodes-bluesky-enhanced",
-  "version": "1.0.1",
-  "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination support",
+  "version": "1.0.2",
+  "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination and search functionality",
   "keywords": [
     "n8n-community-node-package",
     "bluesky",
     "atproto",
     "followers",
     "follows",
-    "social-network"
+    "social-network",
+    "search",
+    "user-search",
+    "post-search"
   ],
   "license": "MIT",
   "homepage": "https://github.com/brian/n8n-nodes-bluesky-enhanced#readme",

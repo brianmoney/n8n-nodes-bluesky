@@ -33,6 +33,7 @@ import {
 	unblockOperation,
 } from './userOperations';
 import { getAuthorFeed, feedProperties, getTimeline } from './feedOperations';
+import { searchUsersOperation, searchPostsOperation, searchProperties } from './searchOperations';
 
 export class BlueskyV2 implements INodeType {
 	description: INodeTypeDescription;
@@ -52,7 +53,7 @@ export class BlueskyV2 implements INodeType {
 					required: true,
 				},
 			],
-			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties],
+			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties],
 		};
 	}
 
@@ -221,6 +222,29 @@ export class BlueskyV2 implements INodeType {
 					const uriUnblock = this.getNodeParameter('uri', i) as string;
 					const unblockData = await unblockOperation(agent, uriUnblock);
 					returnData.push(...unblockData);
+					break;
+
+				/**
+				 * Search operations
+				 */
+				case 'searchUsers':
+					const usersQuery = this.getNodeParameter('q', i) as string;
+					const usersLimit = this.getNodeParameter('limit', i, 25) as number;
+					const usersData = await searchUsersOperation(agent, usersQuery, usersLimit);
+					returnData.push(...usersData);
+					break;
+
+				case 'searchPosts':
+					const postsQuery = this.getNodeParameter('q', i) as string;
+					const postsLimit = this.getNodeParameter('limit', i, 25) as number;
+					const postsAuthor = this.getNodeParameter('author', i, '') as string;
+					const postsData = await searchPostsOperation(
+						agent, 
+						postsQuery, 
+						postsLimit,
+						postsAuthor || undefined
+					);
+					returnData.push(...postsData);
 					break;
 
 				default:

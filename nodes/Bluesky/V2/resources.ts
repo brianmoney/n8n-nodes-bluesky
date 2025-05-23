@@ -18,6 +18,10 @@ export const resourcesProperty: INodeProperties = {
 			name: 'Post',
 			value: 'post',
 		},
+		{
+			name: 'Search',
+			value: 'search',
+		},
 	],
 	default: 'post',
 };

@@ -45,6 +45,9 @@ All original features, plus:
 	- Unlike
 	- Repost
 	- Delete Repost
+- Search
+	- **Search Users** (New)
+	- **Search Posts** (New)
 
 ## Follower Pagination Configuration
 
@@ -99,7 +102,24 @@ With the "List All Follows" operation, you can:
 - Compare followers vs. follows ratios
 - Find mutual follows (people who follow each other)
 - Discover influential accounts in your network
+
+## Search Configuration
+
+### Search Users
+When using the "Search Users" operation, you can configure:
+- **Search Query**: Keywords to search for users
+- **Limit**: Maximum number of results to return (default: 25, max: 100)
+
+### Search Posts
+When using the "Search Posts" operation, you can configure:
+- **Search Query**: Keywords to search for posts
+- **Limit**: Maximum number of posts to fetch (default: 25, max: 100)
+- **Author Handle**: Optional filter to only include posts by a specific author
 - Build connection maps between accounts
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes for each version.
 
 ## License
 

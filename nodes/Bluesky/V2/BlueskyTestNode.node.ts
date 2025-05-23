@@ -17,6 +17,8 @@ const mockMuteInstance = jest.fn();
 const mockUnmuteInstance = jest.fn();
 const mockGraphBlockCreateInstance = jest.fn();
 const mockGraphBlockDeleteInstance = jest.fn();
+const mockActorSearchActorsInstance = jest.fn();
+const mockFeedSearchPostsInstance = jest.fn();
 
 
 jest.mock('@atproto/api', () => {
@@ -46,6 +48,12 @@ jest.mock('@atproto/api', () => {
 							create: mockGraphBlockCreateInstance,
 							delete: mockGraphBlockDeleteInstance,
 						},
+					},
+					actor: {
+						searchActors: mockActorSearchActorsInstance,
+					},
+					feed: {
+						searchPosts: mockFeedSearchPostsInstance,
 					},
 				},
 			},
