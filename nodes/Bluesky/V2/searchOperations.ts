@@ -48,11 +48,10 @@ export const searchProperties: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 25,
-		description: 'Maximum number of results to return (default: 25, max: 100)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: {
 			minValue: 1,
-			maxValue: 100,
 		},
 		displayOptions: {
 			show: {
@@ -66,11 +65,10 @@ export const searchProperties: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 25,
-		description: 'Maximum number of posts to fetch (default: 25, max: 100)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: {
 			minValue: 1,
-			maxValue: 100,
 		},
 		displayOptions: {
 			show: {
@@ -84,7 +82,6 @@ export const searchProperties: INodeProperties[] = [
 		name: 'author',
 		type: 'string',
 		default: '',
-		required: false,
 		description: 'Filter to only posts by the specified author (handle or DID)',
 		displayOptions: {
 			show: {
