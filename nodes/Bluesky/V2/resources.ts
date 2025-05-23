@@ -7,10 +7,6 @@ export const resourcesProperty: INodeProperties = {
 	noDataExpression: true,
 	options: [
 		{
-			name: 'User',
-			value: 'user',
-		},
-		{
 			name: 'Feed',
 			value: 'feed',
 		},
@@ -25,6 +21,10 @@ export const resourcesProperty: INodeProperties = {
 		{
 			name: 'Search',
 			value: 'search',
+		},
+		{
+			name: 'User',
+			value: 'user',
 		},
 	],
 	default: 'post',

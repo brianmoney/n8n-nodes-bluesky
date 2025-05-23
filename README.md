@@ -16,7 +16,7 @@ This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/
   - Automatically pages through all results using the cursor
   - Configurable maximum limit for number of follows to retrieve
   - Configurable page size for each API request
-- **Media Posting**: Ability to attach images to posts
+- **Media Posting**: Ability to attach images to posts (fixed issue with binary data handling)
 - **Get Post Thread Operation**: Retrieve the full context of a post thread
 - **Mute Thread Operation**: Mute a conversation thread
 

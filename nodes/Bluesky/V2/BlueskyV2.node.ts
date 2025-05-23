@@ -139,57 +139,80 @@ export class BlueskyV2 implements INodeType {
 				 */
 
 				case 'post':
-					const postText = this.getNodeParameter('postText', i) as string;
-					const langs = this.getNodeParameter('langs', i) as string[];
-					const includeMedia = this.getNodeParameter('includeMedia', i, false) as boolean;
-
-					let mediaItemsInput: any = undefined;
-					if (includeMedia) {
-						// The 'mediaItems' parameter is a fixedCollection with typeOptions.multiple = true.
-						// This means it will return an array of objects, where each object has a 'media' property.
-						// Each 'media' property then contains 'binaryPropertyName' and 'altText'.
-						const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []) as Array<{
-							media: {
-								binaryPropertyName: string;
-								altText?: string;
-							};
-						}>;
-						mediaItemsInput = { mediaItems: rawMediaItemsArray };
-					}
-
-					let websiteCardData: any = undefined;
-					if (!includeMedia) {
-						const websiteCardDetails = this.getNodeParameter('websiteCard', i, {}) as {
-							details?: {
-								uri: string;
-								title: string;
-								description: string;
-								thumbnailBinaryProperty?: string;
-								fetchOpenGraphTags: boolean;
-							};
-						};
-						if (websiteCardDetails.details?.uri) {
-							websiteCardData = {
-								uri: websiteCardDetails.details.uri,
-								title: websiteCardDetails.details.title,
-								description: websiteCardDetails.details.description,
-								thumbnailBinaryProperty: websiteCardDetails.details.thumbnailBinaryProperty,
-								fetchOpenGraphTags: websiteCardDetails.details.fetchOpenGraphTags,
-							};
+					try {
+						console.log('[DEBUG] Starting post operation');
+						const postText = this.getNodeParameter('postText', i) as string;
+						const langs = this.getNodeParameter('langs', i) as string[];
+						const includeMedia = this.getNodeParameter('includeMedia', i, false) as boolean;
+						
+						console.log(`[DEBUG] Post configuration - Text: "${postText.substring(0, 30)}...", Include Media: ${includeMedia}`);
+						
+						// Log input data for debugging
+						const inputItems = this.getInputData();
+						console.log(`[DEBUG] Input items count: ${inputItems.length}`);
+						if (inputItems.length > 0) {
+							const firstItem = inputItems[0];
+							console.log(`[DEBUG] First item binary properties: ${Object.keys(firstItem.binary || {}).join(', ') || 'none'}`);
 						}
+
+						let mediaItemsInput: any = undefined;
+						if (includeMedia) {
+							// The 'mediaItems' parameter is a fixedCollection with typeOptions.multiple = true.
+							// This means it will return an array of objects, where each object has a 'media' property.
+							// Each 'media' property then contains 'binaryPropertyName' and 'altText'.
+							const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []) as Array<{
+								media: {
+									binaryPropertyName: string;
+									altText?: string;
+								};
+							}>;
+							mediaItemsInput = { mediaItems: rawMediaItemsArray };
+							
+							console.log(`[DEBUG] Media configuration received: ${mediaItemsInput.mediaItems.length} items`);
+							for (const item of mediaItemsInput.mediaItems) {
+								console.log(`[DEBUG] Media item - Binary property: ${item.media.binaryPropertyName}, Alt text: ${item.media.altText || '(none)'}`);
+							}
+						}
+
+						let websiteCardData: any = undefined;
+						if (!includeMedia) {
+							const websiteCardDetails = this.getNodeParameter('websiteCard', i, {}) as {
+								details?: {
+									uri: string;
+									title: string;
+									description: string;
+									thumbnailBinaryProperty?: string;
+									fetchOpenGraphTags: boolean;
+								};
+							};
+							if (websiteCardDetails.details?.uri) {
+								websiteCardData = {
+									uri: websiteCardDetails.details.uri,
+									title: websiteCardDetails.details.title,
+									description: websiteCardDetails.details.description,
+									thumbnailBinaryProperty: websiteCardDetails.details.thumbnailBinaryProperty,
+									fetchOpenGraphTags: websiteCardDetails.details.fetchOpenGraphTags,
+								};
+							}
+						}
+
+						console.log(`[DEBUG] Calling postOperation function`);
+						const postData = await postOperation.call(
+							this, // Pass IExecuteFunctions context to postOperation
+							agent,
+							postText,
+							langs,
+							websiteCardData,
+							includeMedia,
+							mediaItemsInput,
+						);
+
+						console.log(`[DEBUG] Post operation completed successfully`);
+						returnData.push(...postData);
+					} catch (error) {
+						console.error(`[ERROR] Post operation failed: ${error.message}`, error);
+						throw error;
 					}
-
-					const postData = await postOperation.call(
-						this, // Pass IExecuteFunctions context to postOperation
-						agent,
-						postText,
-						langs,
-						websiteCardData,
-						includeMedia,
-						mediaItemsInput,
-					);
-
-					returnData.push(...postData);
 					break;
 
 				case 'deletePost':
