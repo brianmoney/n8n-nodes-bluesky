@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-bluesky-enhanced",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination support",
   "keywords": [
     "n8n-community-node-package",
@@ -46,8 +46,7 @@
       "dist/credentials/BlueskyApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Bluesky/Bluesky.node.js",
-      "dist/nodes/Bluesky/V2/BlueskyV2.node.js"
+      "dist/nodes/Bluesky/Bluesky.node.js"
     ]
   },
   "devDependencies": {
