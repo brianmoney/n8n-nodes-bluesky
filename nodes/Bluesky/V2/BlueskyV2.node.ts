@@ -6,7 +6,7 @@ import type {
 	INodeTypeBaseDescription,
 } from 'n8n-workflow';
 
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 import { AtpAgent, CredentialSession } from '@atproto/api';
 
@@ -68,7 +68,6 @@ export class BlueskyV2 implements INodeType {
 			serviceUrl: string;
 		};
 
-		const operation = this.getNodeParameter('operation', 0) as string;
 		const serviceUrl = new URL(credentials.serviceUrl.replace(/\/+$/, '')); // Ensure no trailing slash
 
 		const session = new CredentialSession(serviceUrl);
@@ -79,6 +78,42 @@ export class BlueskyV2 implements INodeType {
 		});
 
 		for (let i = 0; i < items.length; i++) {
+			const resource = this.getNodeParameter('resource', i) as string;
+			const operation = this.getNodeParameter('operation', i) as string;
+			
+			if (resource === 'search') {
+				// Handle search operations
+				switch (operation) {
+					case 'searchUsers':
+						const usersQuery = this.getNodeParameter('q', i) as string;
+						const usersLimit = this.getNodeParameter('limit', i, 50) as number;
+						const usersData = await searchUsersOperation(agent, usersQuery, usersLimit);
+						returnData.push(...usersData);
+						break;
+					
+					case 'searchPosts':
+						const postsQuery = this.getNodeParameter('q', i) as string;
+						const postsLimit = this.getNodeParameter('limit', i, 50) as number;
+						const postsAuthor = this.getNodeParameter('author', i, '') as string;
+						const postsData = await searchPostsOperation(
+							agent, 
+							postsQuery, 
+							postsLimit,
+							postsAuthor || undefined
+						);
+						returnData.push(...postsData);
+						break;
+					
+					default:
+						throw new NodeOperationError(
+							this.getNode(),
+							`The operation "${operation}" is not supported for resource "${resource}"!`
+						);
+				}
+				continue; // Skip the rest of the loop for search operations
+			}
+			
+			// Handle other resources' operations
 			switch (operation) {
 				/**
 				 * Post operations
@@ -224,30 +259,11 @@ export class BlueskyV2 implements INodeType {
 					returnData.push(...unblockData);
 					break;
 
-				/**
-				 * Search operations
-				 */
-				case 'searchUsers':
-					const usersQuery = this.getNodeParameter('q', i) as string;
-					const usersLimit = this.getNodeParameter('limit', i, 25) as number;
-					const usersData = await searchUsersOperation(agent, usersQuery, usersLimit);
-					returnData.push(...usersData);
-					break;
-
-				case 'searchPosts':
-					const postsQuery = this.getNodeParameter('q', i) as string;
-					const postsLimit = this.getNodeParameter('limit', i, 25) as number;
-					const postsAuthor = this.getNodeParameter('author', i, '') as string;
-					const postsData = await searchPostsOperation(
-						agent, 
-						postsQuery, 
-						postsLimit,
-						postsAuthor || undefined
+					default:
+					throw new NodeOperationError(
+						this.getNode(),
+						`The operation "${operation}" is not supported!`
 					);
-					returnData.push(...postsData);
-					break;
-
-				default:
 			}
 		}
 
