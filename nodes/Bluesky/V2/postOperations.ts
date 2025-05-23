@@ -364,7 +364,7 @@ export async function postOperation(
 			
 			// For each media item defined in the node configuration
 			for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
-				const mediaItem = mediaItemsInput.mediaItems[i];
+				const mediaItem: MediaItem = mediaItemsInput.mediaItems[i];
 				const binaryPropName = mediaItem.media.binaryPropertyName;
 				
 				console.log(`Processing media item ${i + 1}: Binary property name: ${binaryPropName}`);
