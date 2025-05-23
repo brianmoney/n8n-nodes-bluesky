@@ -364,8 +364,8 @@ export async function postOperation(
 			
 			// For each media item defined in the node configuration
 			for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
-				const item = mediaItemsInput.mediaItems[i];
-				const binaryPropName = item.media.binaryPropertyName;
+				const mediaItem = mediaItemsInput.mediaItems[i];
+				const binaryPropName = mediaItem.media.binaryPropertyName;
 				
 				console.log(`Processing media item ${i + 1}: Binary property name: ${binaryPropName}`);
 				
@@ -384,7 +384,7 @@ export async function postOperation(
 					this, // Pass the IExecuteFunctions context
 					agent,
 					binaryPropName,
-					item.media.altText,
+					mediaItem.media.altText,
 					0, // Always use first item for now 
 				);
 				

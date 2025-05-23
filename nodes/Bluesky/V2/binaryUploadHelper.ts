@@ -1,7 +1,7 @@
 // This file contains improved binary data handling for the Bluesky post operation
 // It will help debug and fix the issue with image uploads
 
-import { AtpAgent, BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
+import { BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
 import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
 
 // Additional logging function to provide better debug info

@@ -1,7 +1,7 @@
 // This is a fixed version of the media handling code
 // Import the relevant types from the existing postOperations.ts file
-import { AtpAgent, RichText, BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
-import { INodeExecutionData, INodeProperties, NodeOperationError, IExecuteFunctions } from 'n8n-workflow';
+import { BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
+import { NodeOperationError, IExecuteFunctions } from 'n8n-workflow';
 
 // Define the MediaItem interface explicitly
 interface MediaItem {
