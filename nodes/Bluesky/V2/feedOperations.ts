@@ -21,6 +21,12 @@ export const feedProperties: INodeProperties[] = [
 				action: 'Retrieve feed with posts by a single user',
 			},
 			{
+				name: 'Get Post Thread',
+				value: 'getPostThread',
+				description: 'Retrieve the full context of a post thread',
+				action: 'Retrieve a post thread',
+			},
+			{
 				name: 'Timeline',
 				value: 'getTimeline',
 				description:
@@ -42,6 +48,52 @@ export const feedProperties: INodeProperties[] = [
 			show: {
 				resource: ['feed'],
 				operation: ['getAuthorFeed'],
+			},
+		},
+	},
+	{
+		displayName: 'Post URI',
+		name: 'uri',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'The URI of the post to fetch the thread for',
+		displayOptions: {
+			show: {
+				resource: ['feed'],
+				operation: ['getPostThread'],
+			},
+		},
+	},
+	{
+		displayName: 'Depth',
+		name: 'depth',
+		type: 'number',
+		typeOptions: {
+			minValue: 0,
+		},
+		default: 6,
+		description: 'Depth of parent replies to fetch (max 1000)',
+		displayOptions: {
+			show: {
+				resource: ['feed'],
+				operation: ['getPostThread'],
+			},
+		},
+	},
+	{
+		displayName: 'Parent Height',
+		name: 'parentHeight',
+		type: 'number',
+		typeOptions: {
+			minValue: 0,
+		},
+		default: 80,
+		description: 'Depth of child replies to fetch (max 1000)',
+		displayOptions: {
+			show: {
+				resource: ['feed'],
+				operation: ['getPostThread'],
 			},
 		},
 	},
@@ -86,6 +138,28 @@ export async function getAuthorFeed(
 		});
 	});
 	return returnData;
+}
+
+export async function getPostThread(
+	agent: AtpAgent,
+	uri: string,
+	depth?: number,
+	parentHeight?: number,
+): Promise<INodeExecutionData[]> {
+	const threadResponse = await agent.getPostThread({
+		uri: uri,
+		depth: depth,
+		parentHeight: parentHeight,
+	});
+
+	if (!threadResponse.data.thread) {
+		return [];
+	}
+
+	// The thread can be of various types, ensure it's serializable to JSON for n8n
+	const threadJson = JSON.parse(JSON.stringify(threadResponse.data.thread));
+
+	return [{ json: threadJson }];
 }
 
 export async function getTimeline(agent: AtpAgent, limit: number): Promise<INodeExecutionData[]> {

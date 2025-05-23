@@ -16,6 +16,9 @@ This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/
   - Automatically pages through all results using the cursor
   - Configurable maximum limit for number of follows to retrieve
   - Configurable page size for each API request
+- **Media Posting**: Ability to attach images to posts
+- **Get Post Thread Operation**: Retrieve the full context of a post thread
+- **Mute Thread Operation**: Mute a conversation thread
 
 ## Installation
 
@@ -39,8 +42,9 @@ All original features, plus:
 - Feed
 	- Get Author Feed
 	- Get Timeline of current user
+	- **Get Post Thread** (New) - Retrieve the full context of a post thread.
 - Post
-	- Create Post
+	- Create Post (Now supports **attaching images**)
 	- Like
 	- Unlike
 	- Repost
@@ -48,6 +52,8 @@ All original features, plus:
 - Search
 	- **Search Users** (New)
 	- **Search Posts** (New)
+- Graph
+	- **Mute Thread** (New) - Mute a conversation thread.
 
 ## Follower Pagination Configuration
 
@@ -65,44 +71,6 @@ When using the "List All Follows" operation, you can configure:
 - **Max Results**: Maximum number of follows to fetch (default: 1000)
 - **Page Size**: Number of follows per API request (default: 100, max: 100)
 
-## Screenshots
-
-![images](.github/images/screenshot_20241128_174932.png)
-
-## Use Cases
-
-### RSS Feed to Bluesky
-
-You can use the RSS Trigger node to get the latest posts from an RSS feed and then use the Create Post node to post them to Bluesky.
-
-![images](.github/images/use_case_rss_trigger_overview.png)
-
-Use Open Graph Tags to get the image and description of the post.
-
-![images](.github/images/use_case_rss_trigger_node_details.png)
-
-### Follower Analysis
-
-With the new "List All Followers" operation, you can:
-- Track follower growth over time
-- Build a follower database
-- Analyze follower demographics
-- Send welcome messages to new followers
-
-### Follow Analysis
-
-With the new "List All Follows" operation, you can:
-- Analyze your following patterns
-- Identify and remove inactive follows
-- Discover new potential followers by analyzing mutual follows
-
-### Network Analysis
-
-With the "List All Follows" operation, you can:
-- Compare followers vs. follows ratios
-- Find mutual follows (people who follow each other)
-- Discover influential accounts in your network
-
 ## Search Configuration
 
 ### Search Users
@@ -115,7 +83,29 @@ When using the "Search Posts" operation, you can configure:
 - **Search Query**: Keywords to search for posts
 - **Limit**: Maximum number of posts to fetch (default: 25, max: 100)
 - **Author Handle**: Optional filter to only include posts by a specific author
-- Build connection maps between accounts
+
+## Media Posting Configuration (New)
+
+When using the "Create Post" operation, you can now attach images:
+
+- **Include Media**: A boolean toggle. If checked, allows you to add media items. If unchecked, you can add a website card (as before).
+- **Media Items**: A collection where you can add one or more images.
+  - **Binary Property Name**: The name of the binary property in your n8n workflow that contains the image data (e.g., `imageData`).
+  - **Alt Text**: Descriptive alternative text for the image, for accessibility.
+
+*Note: If "Include Media" is checked, the "Website Card" options will be hidden and ignored.*
+
+## Thread Management Configuration (New)
+
+### Get Post Thread
+This operation is found under the "Feed" resource.
+- **Post URI**: The AT URI of the root post of the thread you want to retrieve (e.g., `at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/yyyyyyyyy`).
+- **Depth**: (Optional) How many levels of parent replies to fetch. Default is 6.
+- **Parent Height**: (Optional) How many levels of child replies (replies to the main post) to fetch. Default is 80.
+
+### Mute Thread
+This operation is found under the new "Graph" resource.
+- **Thread URI**: The AT URI of the root post of the thread you want to mute.
 
 ## Changelog
 

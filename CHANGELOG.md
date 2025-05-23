@@ -5,6 +5,29 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-05-23
+
+### Added
+- **Post with Media**: Added ability to create posts with attached images.
+  - New `includeMedia` boolean parameter for the 'Create Post' operation.
+  - New `mediaItems` collection parameter to specify binary image data and alt text for each image.
+  - Website card (`websiteCard` parameter) is automatically hidden and not processed if `includeMedia` is true.
+- **Get Post Thread**: Added new 'Get Post Thread' operation under the 'Feed' resource.
+  - Fetches the full context of a conversation thread (post, parents, replies).
+  - Parameters: `uri` (of the root post), `depth` (of parent replies), `parentHeight` (of child replies).
+- **Mute Thread**: Added new 'Mute Thread' operation under the new 'Graph' resource.
+  - Mutes a conversation thread, preventing notifications for it.
+  - Parameter: `uri` (of the root post of the thread to mute).
+
+### Changed
+- The 'Create Post' operation now correctly includes `$type: 'app.bsky.feed.post'` and `createdAt` in the post record.
+
+## [1.0.3] - 2025-05-23
+
+### Fixed
+- Fixed resource handling for search operations - now search operations will properly appear in the UI
+- Improved error handling to use n8n's NodeOperationError
+
 ## [1.0.2] - 2025-05-23
 
 ### Added

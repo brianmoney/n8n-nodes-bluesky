@@ -32,8 +32,9 @@ import {
 	blockOperation,
 	unblockOperation,
 } from './userOperations';
-import { getAuthorFeed, feedProperties, getTimeline } from './feedOperations';
+import { getAuthorFeed, feedProperties, getTimeline, getPostThread } from './feedOperations';
 import { searchUsersOperation, searchPostsOperation, searchProperties } from './searchOperations';
+import { graphProperties, muteThreadOperation } from './graphOperations';
 
 export class BlueskyV2 implements INodeType {
 	description: INodeTypeDescription;
@@ -53,7 +54,7 @@ export class BlueskyV2 implements INodeType {
 					required: true,
 				},
 			],
-			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties],
+			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties],
 		};
 	}
 
@@ -113,6 +114,24 @@ export class BlueskyV2 implements INodeType {
 				continue; // Skip the rest of the loop for search operations
 			}
 			
+			if (resource === 'graph') {
+				// Handle graph operations
+				switch (operation) {
+					case 'muteThread':
+						const threadUriToMute = this.getNodeParameter('uri', i) as string;
+						await muteThreadOperation(agent, threadUriToMute);
+						// Mute operation does not return data, so we push a success message
+						returnData.push({ json: { success: true, message: `Thread ${threadUriToMute} muted.` } });
+						break;
+					default:
+						throw new NodeOperationError(
+							this.getNode(),
+							`The operation "${operation}" is not supported for resource "${resource}"!`,
+						);
+				}
+				continue; // Skip the rest of the loop for graph operations
+			}
+
 			// Handle other resources' operations
 			switch (operation) {
 				/**
@@ -122,39 +141,52 @@ export class BlueskyV2 implements INodeType {
 				case 'post':
 					const postText = this.getNodeParameter('postText', i) as string;
 					const langs = this.getNodeParameter('langs', i) as string[];
+					const includeMedia = this.getNodeParameter('includeMedia', i, false) as boolean;
 
-					// Get website card details if provided
-					const websiteCardDetails = this.getNodeParameter('websiteCard', i, {}) as {
-						details?: {
-							uri: string;
-							title: string;
-							description: string;
-							thumbnailBinaryProperty?: string;
-							fetchOpenGraphTags: boolean;
-						};
-					};
-
-					let thumbnailBinary: Buffer | undefined;
-					if (websiteCardDetails.details?.thumbnailBinaryProperty
-						  && websiteCardDetails.details?.fetchOpenGraphTags === false
-					) {
-						thumbnailBinary = await this.helpers.getBinaryDataBuffer(
-							i,
-							websiteCardDetails.details.thumbnailBinaryProperty as string
-						);
+					let mediaItemsInput: any = undefined;
+					if (includeMedia) {
+						// The 'mediaItems' parameter is a fixedCollection with typeOptions.multiple = true.
+						// This means it will return an array of objects, where each object has a 'media' property.
+						// Each 'media' property then contains 'binaryPropertyName' and 'altText'.
+						const rawMediaItemsArray = this.getNodeParameter('mediaItems', i, []) as Array<{
+							media: {
+								binaryPropertyName: string;
+								altText?: string;
+							};
+						}>;
+						mediaItemsInput = { mediaItems: rawMediaItemsArray };
 					}
 
-					const postData = await postOperation(
+					let websiteCardData: any = undefined;
+					if (!includeMedia) {
+						const websiteCardDetails = this.getNodeParameter('websiteCard', i, {}) as {
+							details?: {
+								uri: string;
+								title: string;
+								description: string;
+								thumbnailBinaryProperty?: string;
+								fetchOpenGraphTags: boolean;
+							};
+						};
+						if (websiteCardDetails.details?.uri) {
+							websiteCardData = {
+								uri: websiteCardDetails.details.uri,
+								title: websiteCardDetails.details.title,
+								description: websiteCardDetails.details.description,
+								thumbnailBinaryProperty: websiteCardDetails.details.thumbnailBinaryProperty,
+								fetchOpenGraphTags: websiteCardDetails.details.fetchOpenGraphTags,
+							};
+						}
+					}
+
+					const postData = await postOperation.call(
+						this, // Pass IExecuteFunctions context to postOperation
 						agent,
 						postText,
 						langs,
-						{
-							uri: websiteCardDetails.details?.uri,
-							title: websiteCardDetails.details?.title,
-							description: websiteCardDetails.details?.description,
-							thumbnailBinary: thumbnailBinary,
-							fetchOpenGraphTags: websiteCardDetails.details?.fetchOpenGraphTags,
-						}
+						websiteCardData,
+						includeMedia,
+						mediaItemsInput,
 					);
 
 					returnData.push(...postData);
@@ -207,6 +239,15 @@ export class BlueskyV2 implements INodeType {
 					const timelinePostLimit = this.getNodeParameter('limit', i) as number;
 					const timelineData = await getTimeline(agent, timelinePostLimit);
 					returnData.push(...timelineData);
+					break;
+				
+				case 'getPostThread':
+					const threadUriForGet = this.getNodeParameter('uri', i) as string;
+					const depth = this.getNodeParameter('depth', i, 0) as number;
+					const parentHeight = this.getNodeParameter('parentHeight', i, 0) as number;
+					// Assuming getPostThread returns INodeExecutionData[] based on compiler error
+					const threadDataArray: INodeExecutionData[] = await getPostThread(agent, threadUriForGet, depth, parentHeight);
+					returnData.push(...threadDataArray); 
 					break;
 
 				/**

@@ -19,7 +19,9 @@ const mockGraphBlockCreateInstance = jest.fn();
 const mockGraphBlockDeleteInstance = jest.fn();
 const mockActorSearchActorsInstance = jest.fn();
 const mockFeedSearchPostsInstance = jest.fn();
-
+const mockUploadBlobInstance = jest.fn(); // Added for media uploads
+const mockGetPostThreadInstance = jest.fn(); // Added for getPostThread
+const mockMuteThreadInstance = jest.fn(); // Added for muteThread
 
 jest.mock('@atproto/api', () => {
 	const actualAtprotoApi = jest.requireActual('@atproto/api');
@@ -40,6 +42,8 @@ jest.mock('@atproto/api', () => {
 			getProfile: mockGetProfileInstance,
 			mute: mockMuteInstance,
 			unmute: mockUnmuteInstance,
+			uploadBlob: mockUploadBlobInstance, // Added for media uploads
+			getPostThread: mockGetPostThreadInstance, // Added for getPostThread
 			// Nested structure for block/unblock as used in userOperations.ts:
 			app: {
 				bsky: {
@@ -48,6 +52,7 @@ jest.mock('@atproto/api', () => {
 							create: mockGraphBlockCreateInstance,
 							delete: mockGraphBlockDeleteInstance,
 						},
+						muteThread: mockMuteThreadInstance, // Added for muteThread
 					},
 					actor: {
 						searchActors: mockActorSearchActorsInstance,
@@ -90,6 +95,9 @@ describe('BlueskyV2', () => {
 		mockUnmuteInstance.mockReset();
 		mockGraphBlockCreateInstance.mockReset();
 		mockGraphBlockDeleteInstance.mockReset();
+		mockUploadBlobInstance.mockReset(); // Reset new mock
+		mockGetPostThreadInstance.mockReset(); // Reset for getPostThread
+		mockMuteThreadInstance.mockReset(); // Reset for muteThread
 
 
 		node = new BlueskyV2(mockBaseDescription);
@@ -126,7 +134,16 @@ describe('BlueskyV2', () => {
 			});
 			const mockPostApiResponse = { uri: 'at://did:plc:test/app.bsky.feed.post/123', cid: 'bafy...' };
 			mockPostInstance.mockResolvedValue(mockPostApiResponse);
-
+			// Mock for website card OG fetch if fetchOpenGraphTags is true
+			const mockOgsInstance = jest.fn().mockResolvedValue({ result: { ogTitle: 'Example Title', ogDescription: 'Example Description', ogImage: [{ url: 'http://example.com/image.png' }] } });
+			jest.mock('open-graph-scraper', () => ({ __esModule: true, default: mockOgsInstance }));
+			// Mock for fetching the image data for OG
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)), // Mock image data
+			}) as jest.Mock;
+			// Mock for uploadBlob for OG image
+			mockUploadBlobInstance.mockResolvedValue({ data: { blob: { $type: 'blob', ref: { $link: 'link-to-og-image-blob' }, mimeType: 'image/png', size: 123 } } });
 
 			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 
@@ -136,6 +153,61 @@ describe('BlueskyV2', () => {
 			// The exact argument to agent.post() depends on how postOperation formats it.
 			// We're checking it was called, assuming postOperation passes necessary details.
 			expect(mockPostInstance).toHaveBeenCalled();
+		});
+
+		it('should create a post with media successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+				if (name === 'resource') return 'post';
+				if (name === 'operation') return 'post';
+				if (name === 'postText') return 'This is a test post with an image';
+				if (name === 'langs') return ['en'];
+				if (name === 'includeMedia') return true;
+				if (name === 'mediaItems') return [
+					{ media: { binaryPropertyName: 'imageData', altText: 'A test image' } },
+				];
+				if (name === 'websiteCard') return {}; // Should be ignored if includeMedia is true
+				return defaultValue;
+			});
+
+			const mockImageData = Buffer.from('test image data');
+			(executeFunctions.helpers.getBinaryDataBuffer as jest.Mock).mockResolvedValue(mockImageData);
+
+			const mockUploadResponse = {
+				data: {
+					blob: {
+						$type: 'blob',
+						ref: { $link: 'bafkreihy777drqfkfko7a44s7jz6zdr2epx4cn2hwdc2i27z3o3y2l6y2a' },
+						mimeType: 'image/png',
+						size: 12345,
+					},
+				},
+			};
+			mockUploadBlobInstance.mockResolvedValue(mockUploadResponse);
+
+			const mockPostApiResponse = { uri: 'at://did:plc:test/app.bsky.feed.post/456', cid: 'bafy-post-with-media' };
+			mockPostInstance.mockResolvedValue(mockPostApiResponse);
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+			expect(result[0][0].json.uri).toBe(mockPostApiResponse.uri);
+			expect(result[0][0].json.cid).toBe(mockPostApiResponse.cid);
+			expect(mockLoginInstance).toHaveBeenCalledWith({ identifier: 'test-identifier', password: 'test-password' });
+			expect(executeFunctions.helpers.getBinaryDataBuffer).toHaveBeenCalledWith(0, 'imageData');
+			expect(mockUploadBlobInstance).toHaveBeenCalledWith(mockImageData);
+			expect(mockPostInstance).toHaveBeenCalledWith(expect.objectContaining({
+				text: 'This is a test post with an image',
+				langs: ['en'],
+				embed: {
+					$type: 'app.bsky.embed.images',
+					images: [
+						{
+							image: mockUploadResponse.data.blob,
+							alt: 'A test image',
+						},
+					],
+				},
+				createdAt: expect.any(String),
+			}));
 		});
 
 		it('should handle errors when creating a post', async () => {
@@ -499,6 +571,73 @@ describe('BlueskyV2', () => {
 			});
 			const errorMessage = 'Failed to unblock actor';
 			mockGraphBlockDeleteInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('getPostThread operation', () => {
+		it('should get a post thread successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+				if (name === 'resource') return 'feed';
+				if (name === 'operation') return 'getPostThread';
+				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/threadRoot';
+				if (name === 'depth') return 5;
+				if (name === 'parentHeight') return 2;
+				return defaultValue;
+			});
+
+			const mockThreadData = { type: 'app.bsky.feed.defs#threadViewPost', post: { text: 'Root post' }, replies: [] };
+			mockGetPostThreadInstance.mockResolvedValue({ data: { thread: mockThreadData } });
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+			expect(result[0][0].json).toEqual(mockThreadData);
+			expect(mockGetPostThreadInstance).toHaveBeenCalledWith({
+				uri: 'at://did:plc:test/app.bsky.feed.post/threadRoot',
+				depth: 5,
+				parentHeight: 2,
+			});
+		});
+
+		it('should handle errors when getting a post thread', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'feed';
+				if (name === 'operation') return 'getPostThread';
+				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/threadRoot';
+				return null;
+			});
+			const errorMessage = 'Failed to get post thread';
+			mockGetPostThreadInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('muteThread operation', () => {
+		it('should mute a thread successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+				if (name === 'resource') return 'graph';
+				if (name === 'operation') return 'muteThread';
+				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/threadToMute';
+				return defaultValue;
+			});
+
+			mockMuteThreadInstance.mockResolvedValue({}); // muteThread does not return significant data
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+			expect(result[0][0].json).toEqual({ success: true, message: 'Thread at://did:plc:test/app.bsky.feed.post/threadToMute muted.' });
+			expect(mockMuteThreadInstance).toHaveBeenCalledWith({ root: 'at://did:plc:test/app.bsky.feed.post/threadToMute' });
+		});
+
+		it('should handle errors when muting a thread', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'graph';
+				if (name === 'operation') return 'muteThread';
+				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/threadToMute';
+				return null;
+			});
+			const errorMessage = 'Failed to mute thread';
+			mockMuteThreadInstance.mockRejectedValue(new Error(errorMessage));
 			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
 		});
 	});

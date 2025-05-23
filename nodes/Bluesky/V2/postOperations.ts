@@ -1,5 +1,5 @@
-import { AtpAgent, RichText } from '@atproto/api';
-import { INodeExecutionData, INodeProperties } from 'n8n-workflow';
+import { AtpAgent, RichText, BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
+import { INodeExecutionData, INodeProperties, NodeOperationError, IExecuteFunctions } from 'n8n-workflow';
 import { getLanguageOptions } from './languages';
 import ogs from 'open-graph-scraper';
 
@@ -171,67 +171,200 @@ export const postProperties: INodeProperties[] = [
 			show: {
 				resource: ['post'],
 				operation: ['post'],
+				includeMedia: [false], // Hide if includeMedia is true
 			},
 		},
 	},
+	{
+		displayName: 'Include Media',
+		name: 'includeMedia',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to include media in the post',
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['post'],
+			},
+		},
+	},
+	{
+		displayName: 'Media Items',
+		name: 'mediaItems',
+		type: 'fixedCollection',
+		default: {},
+		placeholder: 'Add Media Item',
+		typeOptions: {
+			multiple: true,
+			multipleValueButtonText: 'Add Media',
+			sortable: true,
+		},
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['post'],
+				includeMedia: [true],
+			},
+		},
+		options: [
+			{
+				displayName: 'Media',
+				name: 'media',
+				values: [
+					{
+						displayName: 'Binary Property',
+						name: 'binaryPropertyName',
+						type: 'string',
+						default: 'data',
+						required: true,
+						description: 'Name of the binary property containing the image data. Maximum 4 images.',
+					},
+					{
+						displayName: 'Alt Text',
+						name: 'altText',
+						type: 'string',
+						default: '',
+						description: 'Alt text for the image (max 1000 bytes)',
+					},
+				],
+			},
+		],
+	},
 ];
 
+interface MediaItem {
+	media: {
+		binaryPropertyName: string;
+		altText?: string;
+	};
+}
+
+interface MediaItemsInput {
+	mediaItems?: MediaItem[];
+}
+
+// Helper function to upload an image and return its BlobRef and alt text
+async function uploadImageHelper(
+	executeFunctions: IExecuteFunctions, // Keep IExecuteFunctions for type clarity
+	agent: BskyAgent,
+	binaryPropertyName: string,
+	altText?: string,
+	itemIndex?: number, // for getBinaryDataBuffer
+): Promise<{ blob: ComAtprotoRepoUploadBlob.OutputSchema['blob']; altText: string }> {
+	try {
+		// Access helpers from the passed IExecuteFunctions context
+		const binaryData = await executeFunctions.helpers.getBinaryDataBuffer(itemIndex || 0, binaryPropertyName);
+		const uploadResponse = await agent.uploadBlob(binaryData);
+
+		return {
+			blob: uploadResponse.data.blob,
+			altText: altText || '',
+		};
+	} catch (error) {
+		const node = executeFunctions.getNode();
+		throw new NodeOperationError(node, error, {
+			message: `Failed to upload image from binary property '${binaryPropertyName}'`,
+			itemIndex: itemIndex,
+		});
+	}
+}
+
 export async function postOperation(
-	agent: AtpAgent,
+	this: IExecuteFunctions, // 'this' is the IExecuteFunctions context
+	agent: BskyAgent,
 	postText: string,
 	langs: string[],
 	websiteCard?: {
-		thumbnailBinary: Buffer | undefined;
+		thumbnailBinaryProperty?: string;
 		description: string | undefined;
 		title: string | undefined;
 		uri: string | undefined;
 		fetchOpenGraphTags: boolean | undefined;
 	},
+	includeMedia?: boolean,
+	mediaItemsInput?: MediaItemsInput,
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
+	const node = this.getNode();
 
 	let rt = new RichText({ text: postText });
-	await rt.detectFacets(agent);
+	await rt.detectFacets(agent as AtpAgent); // BskyAgent extends AtpAgent
 
-	let postData: any = {
+	const postData: any = {
+		$type: 'app.bsky.feed.post',
 		text: rt.text,
 		langs: langs,
 		facets: rt.facets,
+		createdAt: new Date().toISOString(),
 	};
 
-	if (websiteCard?.uri) {
-		let thumbBlob = undefined;
-		if (websiteCard.thumbnailBinary) {
-			const uploadResponse = await agent.uploadBlob(websiteCard.thumbnailBinary, {
-				encoding: 'image/png', // Adjust based on expected image type
-			});
-			thumbBlob = uploadResponse.data.blob;
+	if (includeMedia && mediaItemsInput?.mediaItems && mediaItemsInput.mediaItems.length > 0) {
+		if (mediaItemsInput.mediaItems.length > 4) {
+			throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
+		}
+		const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
+		for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
+			const item = mediaItemsInput.mediaItems[i];
+			// Pass 'this' (IExecuteFunctions context) to the helper
+			const uploadedImage = await uploadImageHelper(
+				this, // Pass the IExecuteFunctions context
+				agent,
+				item.media.binaryPropertyName,
+				item.media.altText,
+				i, // Pass item index for helpers.getBinaryDataBuffer if it's processing multiple items
+			);
+			imagesForEmbed.push({ image: uploadedImage.blob, alt: uploadedImage.altText });
+		}
+		if (imagesForEmbed.length > 0) {
+			postData.embed = {
+				$type: 'app.bsky.embed.images',
+				images: imagesForEmbed,
+			};
+		}
+	} else if (websiteCard?.uri) {
+		let thumbBlob: ComAtprotoRepoUploadBlob.OutputSchema['blob'] | undefined = undefined;
+
+		if (websiteCard.thumbnailBinaryProperty) {
+			try {
+				// Use this.helpers here as well
+				const binaryData = await this.helpers.getBinaryDataBuffer(0, websiteCard.thumbnailBinaryProperty);
+				const uploadResponse = await agent.uploadBlob(binaryData);
+				thumbBlob = uploadResponse.data.blob;
+			} catch (error) {
+				throw new NodeOperationError(node, error, {
+					message: `Failed to upload website card thumbnail from binary property '${websiteCard.thumbnailBinaryProperty}'`,
+				});
+			}
 		}
 
 		if (websiteCard.fetchOpenGraphTags === true) {
-			const ogsResponse = await ogs({ url: websiteCard.uri })
-			if (ogsResponse.error) {
-				throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error}`);
-			}
-			if (ogsResponse.result.ogImage) {
-				// create thumbBlob from ogsResult.result.ogImage
-				// get base64 image data from ogsResponse.result.ogImage.url
-
-				const imageDataResponse = await fetch(ogsResponse.result.ogImage[0].url)
-				if (!imageDataResponse.ok) {
-					throw new Error(`Error fetching image data: ${imageDataResponse.statusText}`);
+			try {
+				const ogsResponse = await ogs({ url: websiteCard.uri });
+				if (ogsResponse.error || !ogsResponse.result) {
+					throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error || 'No result'}`);
 				}
-				// Create a n8n binary buffer from the image data
-				const thumbBlobArrayBuffer = await imageDataResponse.arrayBuffer();
-				thumbBlob = Buffer.from(thumbBlobArrayBuffer);
-				const { data } = await agent.uploadBlob(thumbBlob)
-				thumbBlob = data.blob;
-			}
-			if (ogsResponse.result.ogTitle) {
-				websiteCard.title = ogsResponse.result.ogTitle;
-			}
-			if (ogsResponse.result.ogDescription) {
-				websiteCard.description = ogsResponse.result.ogDescription;
+				const ogResult = ogsResponse.result;
+				if (ogResult.ogImage && ogResult.ogImage.length > 0 && ogResult.ogImage[0].url) {
+					const imageUrl = ogResult.ogImage[0].url;
+					const imageResponse = await fetch(imageUrl);
+					if (!imageResponse.ok) {
+						throw new Error(`Failed to fetch Open Graph image from ${imageUrl}: ${imageResponse.statusText}`);
+					}
+					const imageArrayBuffer = await imageResponse.arrayBuffer();
+					const imageBuffer = Buffer.from(imageArrayBuffer);
+					const uploadResponse = await agent.uploadBlob(imageBuffer);
+					thumbBlob = uploadResponse.data.blob;
+				}
+				if (ogResult.ogTitle) {
+					websiteCard.title = ogResult.ogTitle;
+				}
+				if (ogResult.ogDescription) {
+					websiteCard.description = ogResult.ogDescription;
+				}
+			} catch (error) {
+				throw new NodeOperationError(node, error, {
+					message: 'Failed to process Open Graph data for website card',
+				});
 			}
 		}
 
@@ -239,8 +372,8 @@ export async function postOperation(
 			$type: 'app.bsky.embed.external',
 			external: {
 				uri: websiteCard.uri,
-				title: websiteCard.title,
-				description: websiteCard.description,
+				title: websiteCard.title || '', // Ensure title is not undefined
+				description: websiteCard.description || '', // Ensure description is not undefined
 				thumb: thumbBlob,
 			},
 		};
