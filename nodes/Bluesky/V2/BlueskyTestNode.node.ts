@@ -641,4 +641,91 @@ describe('BlueskyV2', () => {
 			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
 		});
 	});
+
+	describe('reply operation', () => {
+		it('should reply to a post successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'operation') return 'reply';
+				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
+				if (name === 'cid') return 'bafy-original-post-cid';
+				if (name === 'replyText') return 'This is a test reply';
+				if (name === 'replyLangs') return ['en'];
+				return null;
+			});
+
+			// Mock getPostThread response with parent and root for thread structure
+			mockGetPostThreadInstance.mockResolvedValue({
+				thread: {
+					post: {
+						uri: 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey',
+						cid: 'bafy-original-post-cid'
+					},
+					parent: {
+						post: { 
+							uri: 'at://did:plc:original-author/app.bsky.feed.post/parentRkey',
+							cid: 'bafy-parent-cid' 
+						}
+					}
+				}
+			});
+
+			const mockReplyApiResponse = { uri: 'at://did:plc:test-did/app.bsky.feed.post/replyRkey', cid: 'bafy-reply-cid' };
+			mockPostInstance.mockResolvedValue(mockReplyApiResponse);
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+			expect(result[0][0].json.uri).toBe(mockReplyApiResponse.uri);
+			expect(mockPostInstance).toHaveBeenCalled();
+			expect(mockGetPostThreadInstance).toHaveBeenCalledWith({
+				uri: 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey',
+			});
+		});
+
+		it('should handle errors when replying to a post', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'operation') return 'reply';
+				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
+				if (name === 'cid') return 'bafy-original-post-cid';
+				if (name === 'replyText') return 'This is a test reply';
+				if (name === 'replyLangs') return ['en'];
+				return null;
+			});
+			const errorMessage = 'Failed to reply to post';
+			mockGetPostThreadInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('quote operation', () => {
+		it('should quote a post successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'operation') return 'quote';
+				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
+				if (name === 'cid') return 'bafy-original-post-cid';
+				if (name === 'quoteText') return 'This is a test quote';
+				if (name === 'quoteLangs') return ['en'];
+				return null;
+			});
+
+			const mockQuoteApiResponse = { uri: 'at://did:plc:test-did/app.bsky.feed.post/quoteRkey', cid: 'bafy-quote-cid' };
+			mockPostInstance.mockResolvedValue(mockQuoteApiResponse);
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+			expect(result[0][0].json.uri).toBe(mockQuoteApiResponse.uri);
+			expect(mockPostInstance).toHaveBeenCalled();
+		});
+
+		it('should handle errors when quoting a post', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'operation') return 'quote';
+				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
+				if (name === 'cid') return 'bafy-original-post-cid';
+				if (name === 'quoteText') return 'This is a test quote';
+				if (name === 'quoteLangs') return ['en'];
+				return null;
+			});
+			const errorMessage = 'Failed to quote post';
+			mockPostInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
 });

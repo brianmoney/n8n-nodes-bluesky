@@ -21,6 +21,8 @@ import {
 	deleteRepostOperation,
 	postProperties,
 	repostOperation,
+	replyOperation,
+	quoteOperation,
 } from './postOperations';
 import {
 	getProfileOperation,
@@ -140,20 +142,9 @@ export class BlueskyV2 implements INodeType {
 
 				case 'post':
 					try {
-						console.log('[DEBUG] Starting post operation');
 						const postText = this.getNodeParameter('postText', i) as string;
 						const langs = this.getNodeParameter('langs', i) as string[];
 						const includeMedia = this.getNodeParameter('includeMedia', i, false) as boolean;
-						
-						console.log(`[DEBUG] Post configuration - Text: "${postText.substring(0, 30)}...", Include Media: ${includeMedia}`);
-						
-						// Log input data for debugging
-						const inputItems = this.getInputData();
-						console.log(`[DEBUG] Input items count: ${inputItems.length}`);
-						if (inputItems.length > 0) {
-							const firstItem = inputItems[0];
-							console.log(`[DEBUG] First item binary properties: ${Object.keys(firstItem.binary || {}).join(', ') || 'none'}`);
-						}
 
 						let mediaItemsInput: any = undefined;
 						if (includeMedia) {
@@ -162,14 +153,17 @@ export class BlueskyV2 implements INodeType {
 							// where 'media' is the collection name and the array contains the actual items.
 							try {
 								const rawMediaItems = this.getNodeParameter('mediaItems', i, {}) as any;
-								console.log(`[DEBUG] Raw media items received:`, JSON.stringify(rawMediaItems, null, 2));
-								console.log(`[DEBUG] Raw media items type: ${typeof rawMediaItems}, keys: ${Object.keys(rawMediaItems || {}).join(', ')}`);
-								console.log(`[DEBUG] Raw media items.media exists: ${rawMediaItems && rawMediaItems.media !== undefined}, isArray: ${Array.isArray(rawMediaItems?.media)}`);
 								
 								// Extract the media array from the fixedCollection structure
 								let mediaArray: any[] = [];
-								if (rawMediaItems && rawMediaItems.media && Array.isArray(rawMediaItems.media)) {
-									mediaArray = rawMediaItems.media;
+								if (rawMediaItems && rawMediaItems.media) {
+									// Handle both single object and array cases
+									if (Array.isArray(rawMediaItems.media)) {
+										mediaArray = rawMediaItems.media;
+									} else {
+										// Single media item - wrap it in an array
+										mediaArray = [rawMediaItems.media];
+									}
 								}
 								
 								// Transform the array to match our expected structure
@@ -182,21 +176,10 @@ export class BlueskyV2 implements INodeType {
 								
 								mediaItemsInput = { mediaItems: transformedItems };
 								
-								console.log(`[DEBUG] Media items type: ${typeof mediaItemsInput.mediaItems}, isArray: ${Array.isArray(mediaItemsInput.mediaItems)}`);
-								
-								// Make sure mediaItems is an array before trying to iterate
+								// Log media configuration for troubleshooting
 								if (Array.isArray(mediaItemsInput.mediaItems) && mediaItemsInput.mediaItems.length > 0) {
-									console.log(`[DEBUG] Media configuration received: ${mediaItemsInput.mediaItems.length} items`);
-									for (let j = 0; j < mediaItemsInput.mediaItems.length; j++) {
-										const item = mediaItemsInput.mediaItems[j];
-										if (item && item.media) {
-											console.log(`[DEBUG] Media item ${j+1} - Binary property: ${item.media.binaryPropertyName}, Alt text: ${item.media.altText || '(none)'}`);
-										} else {
-											console.log(`[DEBUG] Invalid media item detected at index ${j}:`, item);
-										}
-									}
+									console.log(`[INFO] Processing ${mediaItemsInput.mediaItems.length} media item(s) for Bluesky post`);
 								} else {
-									console.log(`[DEBUG] No valid media items found in configuration`);
 									// Ensure we have a valid array even if empty
 									mediaItemsInput = { mediaItems: [] };
 								}
@@ -229,7 +212,6 @@ export class BlueskyV2 implements INodeType {
 							}
 						}
 
-						console.log(`[DEBUG] Calling postOperation function`);
 						const postData = await postOperation.call(
 							this, // Pass IExecuteFunctions context to postOperation
 							agent,
@@ -240,10 +222,9 @@ export class BlueskyV2 implements INodeType {
 							mediaItemsInput,
 						);
 
-						console.log(`[DEBUG] Post operation completed successfully`);
 						returnData.push(...postData);
 					} catch (error) {
-						console.error(`[ERROR] Post operation failed: ${error.message}`, error);
+						console.error(`[ERROR] Bluesky post operation failed: ${error.message}`, error);
 						throw error;
 					}
 					break;
@@ -278,6 +259,24 @@ export class BlueskyV2 implements INodeType {
 					const uriDeleteRepost = this.getNodeParameter('uri', i) as string;
 					const deleteRepostData = await deleteRepostOperation(agent, uriDeleteRepost);
 					returnData.push(...deleteRepostData);
+					break;
+
+				case 'reply':
+					const uriReply = this.getNodeParameter('uri', i) as string;
+					const cidReply = this.getNodeParameter('cid', i) as string;
+					const replyText = this.getNodeParameter('replyText', i) as string;
+					const replyLangs = this.getNodeParameter('replyLangs', i) as string[];
+					const replyData = await replyOperation(agent, replyText, replyLangs, uriReply, cidReply);
+					returnData.push(...replyData);
+					break;
+
+				case 'quote':
+					const uriQuote = this.getNodeParameter('uri', i) as string;
+					const cidQuote = this.getNodeParameter('cid', i) as string;
+					const quoteText = this.getNodeParameter('quoteText', i) as string;
+					const quoteLangs = this.getNodeParameter('quoteLangs', i) as string[];
+					const quoteData = await quoteOperation(agent, quoteText, quoteLangs, uriQuote, cidQuote);
+					returnData.push(...quoteData);
 					break;
 
 				/**

@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-bluesky-enhanced",
-  "version": "1.1.5",
-  "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination, search functionality, media posting, and thread management",
+  "version": "1.2.0",
+  "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination, search functionality, media posting, thread management, and reply/quote operations",
   "keywords": [
     "n8n-community-node-package",
     "bluesky",

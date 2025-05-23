@@ -45,6 +45,16 @@ export const postProperties: INodeProperties[] = [
 				value: 'deleteLike',
 				action: 'Unlike a post',
 			},
+			{
+				name: 'Reply to a Post',
+				value: 'reply',
+				action: 'Reply to a post',
+			},
+			{
+				name: 'Quote a Post',
+				value: 'quote',
+				action: 'Quote a post',
+			},
 		],
 		type: 'options',
 	},
@@ -85,7 +95,7 @@ export const postProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['post'],
-				operation: ['deletePost', 'like', 'deleteLike', 'repost'],
+				operation: ['deletePost', 'like', 'deleteLike', 'repost', 'reply', 'quote'],
 			},
 		},
 	},
@@ -99,7 +109,65 @@ export const postProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['post'],
-				operation: ['like', 'repost'],
+				operation: ['like', 'repost', 'reply', 'quote'],
+			},
+		},
+	},
+	{
+		displayName: 'Reply Text',
+		name: 'replyText',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'The text content of your reply',
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['reply'],
+			},
+		},
+	},
+	{
+		displayName: 'Reply Languages',
+		name: 'replyLangs',
+		type: 'multiOptions',
+		description:
+			'Choose from the list of supported languages. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+		options: getLanguageOptions(),
+		default: ['en'],
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['reply'],
+			},
+		},
+	},
+	{
+		displayName: 'Quote Text',
+		name: 'quoteText',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'The text content of your quote post',
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['quote'],
+			},
+		},
+	},
+	{
+		displayName: 'Quote Languages',
+		name: 'quoteLangs',
+		type: 'multiOptions',
+		description:
+			'Choose from the list of supported languages. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+		options: getLanguageOptions(),
+		default: ['en'],
+		displayOptions: {
+			show: {
+				resource: ['post'],
+				operation: ['quote'],
 			},
 		},
 	},
@@ -274,14 +342,13 @@ export async function postOperation(
 	if (includeMedia === true) {
 		// Make sure we have valid media items to process
 		if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
-			console.log('[DEBUG] Include media is enabled, but no valid media items were found');
+			// No valid media items found - continue without media
 		} else {
 			// Valid media items available
 			if (mediaItemsInput.mediaItems.length > 4) {
 				throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
 			}
 			
-			console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
 			const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
 			
 			try {
@@ -297,12 +364,10 @@ export async function postOperation(
 					
 					// Validate media item structure
 					if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
-						console.log(`[DEBUG] Skipping invalid media item at index ${i}`);
-						continue;
+						continue; // Skip invalid media item
 					}
 					
 					const binaryPropName = mediaItem.media.binaryPropertyName;
-					console.log(`[DEBUG] Processing media item ${i + 1}: Binary property name: ${binaryPropName}`);
 					
 					// Validate binary property exists before trying to upload
 					const inputItem = items[0]; // Always use first item for now
@@ -315,7 +380,6 @@ export async function postOperation(
 					}
 					
 					// Access helpers from the passed IExecuteFunctions context
-					console.log(`[DEBUG] Getting binary data buffer...`);
 					const binaryData = await this.helpers.getBinaryDataBuffer(0, binaryPropName);
 					
 					if (!binaryData || !Buffer.isBuffer(binaryData)) {
@@ -325,30 +389,21 @@ export async function postOperation(
 						);
 					}
 					
-					console.log(`[DEBUG] Binary data buffer retrieved, size: ${binaryData.length} bytes`);
-					console.log(`[DEBUG] Uploading blob to Bluesky...`);
-					
 					const uploadResponse = await agent.uploadBlob(binaryData);
-					console.log(`[DEBUG] Upload successful!`);
 					
 					// Add to our images array
 					imagesForEmbed.push({ 
 						image: uploadResponse.data.blob, 
 						alt: mediaItem.media.altText || '' 
 					});
-					
-					console.log(`[DEBUG] Successfully processed media item ${i + 1}`);
 				}
 				
 				// If images were uploaded successfully, add them to the post
 				if (imagesForEmbed.length > 0) {
-					console.log(`[DEBUG] Adding ${imagesForEmbed.length} images to post embed`);
 					postData.embed = {
 						$type: 'app.bsky.embed.images',
 						images: imagesForEmbed,
 					};
-				} else {
-					console.log('[DEBUG] No images were successfully uploaded');
 				}
 			} catch (error) {
 				console.error('[ERROR] Error processing media:', error);
@@ -414,9 +469,7 @@ export async function postOperation(
 	}
 
 	// Create the post
-	console.log('[DEBUG] Creating post with data:', JSON.stringify(postData, null, 2));
 	const postResponse: { uri: string; cid: string } = await agent.post(postData);
-	console.log('[DEBUG] Post created successfully:', postResponse);
 
 	returnData.push({
 		json: {
@@ -512,6 +565,99 @@ export async function deleteRepostOperation(
 	returnData.push({
 		json: {
 			uri: uri,
+		},
+	});
+
+	return returnData;
+}
+
+export async function replyOperation(
+	agent: BskyAgent,
+	replyText: string,
+	langs: string[],
+	parentUri: string,
+	parentCid: string,
+): Promise<INodeExecutionData[]> {
+	const returnData: INodeExecutionData[] = [];
+
+	let rt = new RichText({ text: replyText });
+	await rt.detectFacets(agent as AtpAgent);
+
+	// Get the parent post to find the root of the thread
+	const parentThreadResponse = await agent.getPostThread({ uri: parentUri });
+	
+	// Extract the root from the thread - if parent is part of a thread, use its root
+	let root = { uri: parentUri, cid: parentCid };
+	if (parentThreadResponse.data.thread && 'post' in parentThreadResponse.data.thread) {
+		const threadPost = parentThreadResponse.data.thread.post;
+		if (threadPost.record && typeof threadPost.record === 'object' && 'reply' in threadPost.record) {
+			const replyRecord = threadPost.record.reply as any;
+			if (replyRecord?.root) {
+				root = replyRecord.root;
+			}
+		}
+	}
+
+	const replyData = {
+		$type: 'app.bsky.feed.post' as const,
+		text: rt.text,
+		langs: langs,
+		facets: rt.facets,
+		createdAt: new Date().toISOString(),
+		reply: {
+			root: root,
+			parent: {
+				uri: parentUri,
+				cid: parentCid,
+			},
+		},
+	};
+
+	const replyResponse: { uri: string; cid: string } = await agent.post(replyData);
+
+	returnData.push({
+		json: {
+			uri: replyResponse.uri,
+			cid: replyResponse.cid,
+		},
+	});
+
+	return returnData;
+}
+
+export async function quoteOperation(
+	agent: BskyAgent,
+	quoteText: string,
+	langs: string[],
+	quotedUri: string,
+	quotedCid: string,
+): Promise<INodeExecutionData[]> {
+	const returnData: INodeExecutionData[] = [];
+
+	let rt = new RichText({ text: quoteText });
+	await rt.detectFacets(agent as AtpAgent);
+
+	const quoteData = {
+		$type: 'app.bsky.feed.post' as const,
+		text: rt.text,
+		langs: langs,
+		facets: rt.facets,
+		createdAt: new Date().toISOString(),
+		embed: {
+			$type: 'app.bsky.embed.record' as const,
+			record: {
+				uri: quotedUri,
+				cid: quotedCid,
+			},
+		},
+	};
+
+	const quoteResponse: { uri: string; cid: string } = await agent.post(quoteData);
+
+	returnData.push({
+		json: {
+			uri: quoteResponse.uri,
+			cid: quoteResponse.cid,
 		},
 	});
 

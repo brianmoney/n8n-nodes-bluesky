@@ -5,6 +5,19 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-05-23
+
+### Added
+- New "Reply to a Post" operation that allows replying to existing posts with proper thread structure
+- New "Quote a Post" operation that allows quoting existing posts in new posts
+- Complete thread awareness for replies, finding the correct root and parent references
+
+## [1.1.7] - 2025-05-23
+
+### Changed
+- Cleaned up verbose debug logging statements while preserving essential error logging
+- Improved code readability by removing temporary debugging statements used during development
+
 ## [1.1.4] - 2025-05-23
 
 ### Fixed
