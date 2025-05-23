@@ -24,6 +24,8 @@ import {
 } from './postOperations';
 import {
 	getProfileOperation,
+	listAllFollowersOperation,
+	listAllFollowsOperation,
 	muteOperation,
 	userProperties,
 	unmuteOperation,
@@ -179,6 +181,22 @@ export class BlueskyV2 implements INodeType {
 					const actor = this.getNodeParameter('actor', i) as string;
 					const profileData = await getProfileOperation(agent, actor);
 					returnData.push(...profileData);
+					break;
+
+				case 'listAllFollowers':
+					const handle = this.getNodeParameter('handle', i) as string;
+					const maxResults = this.getNodeParameter('maxResults', i, 1000) as number;
+					const pageSize = this.getNodeParameter('pageSize', i, 100) as number;
+					const followersData = await listAllFollowersOperation(agent, handle, maxResults, pageSize);
+					returnData.push(...followersData);
+					break;
+
+				case 'listAllFollows':
+					const followsHandle = this.getNodeParameter('handle', i) as string;
+					const followsMaxResults = this.getNodeParameter('maxResults', i, 1000) as number;
+					const followsPageSize = this.getNodeParameter('pageSize', i, 100) as number;
+					const followsData = await listAllFollowsOperation(agent, followsHandle, followsMaxResults, followsPageSize);
+					returnData.push(...followsData);
 					break;
 
 				case 'mute':

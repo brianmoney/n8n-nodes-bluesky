@@ -1,19 +1,24 @@
 {
-  "name": "@muench-dev/n8n-nodes-bluesky",
-  "version": "2.9.0",
-  "description": "BlueSky API nodes for n8n",
+  "name": "n8n-nodes-bluesky-enhanced",
+  "version": "1.0.0",
+  "description": "Enhanced BlueSky API nodes for n8n with follower and follows pagination support",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "bluesky",
+    "atproto",
+    "followers",
+    "follows",
+    "social-network"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/muench-dev/n8n-nodes-bluesky#readme",
+  "homepage": "https://github.com/brian/n8n-nodes-bluesky-enhanced#readme",
   "author": {
-    "name": "Christian Münch",
-    "email": "christian@muench.dev"
+    "name": "Brian",
+    "email": "brian@example.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/muench-dev/n8n-nodes-bluesky.git"
+    "url": "https://github.com/brian/n8n-nodes-bluesky-enhanced.git"
   },
   "engines": {
     "node": ">=18.10",
@@ -41,7 +46,8 @@
       "dist/credentials/BlueskyApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Bluesky/Bluesky.node.js"
+      "dist/nodes/Bluesky/Bluesky.node.js",
+      "dist/nodes/Bluesky/V2/BlueskyV2.node.js"
     ]
   },
   "devDependencies": {

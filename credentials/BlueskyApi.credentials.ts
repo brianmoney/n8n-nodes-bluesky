@@ -5,7 +5,7 @@ export class BlueskyApi implements ICredentialType {
 	displayName = 'Bluesky API';
 	name = 'blueskyApi';
 	documentationUrl = 'https://atproto.com/docs';
-	icon = 'node:@muench-dev/n8n-nodes-bluesky.bluesky' as Icon;
+	icon = 'node:n8n-nodes-bluesky-enhanced.bluesky' as Icon;
 
 	properties: INodeProperties[] = [
 		{
