@@ -37,14 +37,15 @@ import {
 import { getAuthorFeed, feedProperties, getTimeline, getPostThread } from './feedOperations';
 import { searchUsersOperation, searchPostsOperation, searchProperties } from './searchOperations';
 import { graphProperties, muteThreadOperation } from './graphOperations';
-import { 
-	getNotificationsOperation, 
-	getUnreadCountOperation, 
+import {
+	// getNotificationsOperation, // Removed as it's no longer exported / replaced by enhanced listNotificationsOperation
+	getUnreadCountOperation,
 	markAsSeenOperation,
-	notificationProperties 
+	notificationProperties,
+	listNotificationsOperation as enhancedListNotifications, // Renamed for clarity and to point to the enhanced version
 } from './notificationOperations';
 import {
-	listNotificationsOperation,
+	// listNotificationsOperation, // This was the one from analytics, ensure we use the one from notificationOperations
 	getUnreadCountOperation as analyticsGetUnreadCountOperation,
 	updateSeenNotificationsOperation,
 	getPostInteractionsOperation,
@@ -166,29 +167,35 @@ export class BlueskyV2 implements INodeType {
 				// Handle notification operations
 				switch (operation) {
 					case 'getNotifications':
-						const limit = this.getNodeParameter('limit', i, 50) as number;
-						const cursor = this.getNodeParameter('cursor', i, '') as string;
-						const since = this.getNodeParameter('since', i, '') as string;
-						const priority = this.getNodeParameter('priority', i, false) as boolean;
-						
-						const notificationsData = await getNotificationsOperation(
-							agent,
-							limit,
-							cursor || undefined,
-							since || undefined,
-							priority
+						// This operation is currently unavailable as getNotificationsOperation is no longer exported
+						// from notificationOperations.ts. It was likely replaced by the enhanced listNotificationsOperation.
+						throw new NodeOperationError(
+							this.getNode(),
+							`The 'getNotifications' operation under 'notifications' resource is currently unavailable. Please check if 'listNotifications' under 'analytics' resource meets your needs.`,
 						);
-						returnData.push(...notificationsData);
+						// const limit = this.getNodeParameter('limit', i, 50) as number;
+						// const cursor = this.getNodeParameter('cursor', i, '') as string;
+						// const since = this.getNodeParameter('since', i, '') as string;
+						// const priority = this.getNodeParameter('priority', i, false) as boolean;
+						//
+						// const notificationsData = await getNotificationsOperation( // This function is no longer available
+						// 	agent,
+						// 	limit,
+						// 	cursor || undefined,
+						// 	since || undefined,
+						// 	priority
+						// );
+						// returnData.push(...notificationsData);
 						break;
 					
 					case 'getUnreadCount':
-						const unreadCountData = await getUnreadCountOperation(agent);
+						const unreadCountData = await getUnreadCountOperation(agent); // Uses getUnreadCountOperation from notificationOperations
 						returnData.push(...unreadCountData);
 						break;
 					
 					case 'markAsSeen':
 						const seenAt = this.getNodeParameter('seenAt', i) as string;
-						const markSeenData = await markAsSeenOperation(agent, seenAt);
+						const markSeenData = await markAsSeenOperation(agent, seenAt); // Uses markAsSeenOperation from notificationOperations
 						returnData.push(...markSeenData);
 						break;
 					
@@ -206,9 +213,16 @@ export class BlueskyV2 implements INodeType {
 				switch (operation) {
 					case 'listNotifications':
 						const analyticsLimit = this.getNodeParameter('limit', i, 50) as number;
-						const analyticsNotificationsData = await listNotificationsOperation(
+						const unreadOnly = this.getNodeParameter('unreadOnly', i, true) as boolean; // Added
+						const markRetrievedAsRead = this.getNodeParameter('markRetrievedAsRead', i, true) as boolean; // Added
+						const initialCursor = this.getNodeParameter('cursor', i, undefined) as string | undefined; // Added for consistency
+
+						const analyticsNotificationsData = await enhancedListNotifications( // Use the aliased and enhanced function
 							agent,
-							analyticsLimit
+							analyticsLimit,
+							unreadOnly,
+							markRetrievedAsRead,
+							initialCursor,
 						);
 						returnData.push(...analyticsNotificationsData);
 						break;

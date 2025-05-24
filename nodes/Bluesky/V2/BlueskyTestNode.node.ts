@@ -958,7 +958,186 @@ describe('BlueskyV2', () => {
 
 	describe('Analytics Operations', () => {
 		describe('listNotifications operation', () => {
-			it('should list notifications for analytics successfully', async () => {
+			it('should list notifications for analytics successfully with unreadOnly: true (default) and markRetrievedAsRead: true (default)', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue: any) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 25;
+					// unreadOnly and markRetrievedAsRead will use their default values (true)
+					if (name === 'unreadOnly') return defaultValue; // Should be true by default in BlueskyV2.node.ts
+					if (name === 'markRetrievedAsRead') return defaultValue; // Should be true by default
+					if (name === 'cursor') return undefined;
+					return null;
+				});
+
+				const mockUnreadNotificationsResponse = {
+					data: {
+						notifications: [
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/unread1',
+								cid: 'bafy-unread-cid-1',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'like',
+								isRead: false,
+								indexedAt: '2025-05-24T10:00:00.000Z'
+							},
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/read1',
+								cid: 'bafy-read-cid-1',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'follow',
+								isRead: true, // This one should be filtered out by the operation logic
+								indexedAt: '2025-05-23T10:00:00.000Z'
+							},
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/unread2',
+								cid: 'bafy-unread-cid-2',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'repost',
+								isRead: false,
+								indexedAt: '2025-05-24T11:00:00.000Z'
+							}
+						],
+						cursor: 'next-page-cursor'
+					}
+				};
+				mockListNotificationsInstance.mockResolvedValueOnce(mockUnreadNotificationsResponse);
+				mockUpdateSeenInstance.mockResolvedValue({}); // For markRetrievedAsRead
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				
+				// Expecting 2 unread notifications + 1 pagination item
+				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread1')).toBeDefined();
+				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread2')).toBeDefined();
+				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/read1')).toBeUndefined();
+				
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
+					limit: 25, // This is the API limit per call, client-side filtering handles userRequestedLimit
+					// seenAt should NOT be passed when unreadOnly is true, as per current logic
+				});
+				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({ seenAt: '2025-05-24T11:00:00.000Z' });
+			});
+
+			it('should list notifications for analytics with unreadOnly: false and markRetrievedAsRead: true', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue: any) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 25;
+					if (name === 'unreadOnly') return false;
+					if (name === 'markRetrievedAsRead') return true;
+					if (name === 'cursor') return undefined;
+					return null;
+				});
+
+				const mockAllNotificationsResponse = {
+					data: {
+						notifications: [
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/all1',
+								cid: 'bafy-all-cid-1',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'like',
+								isRead: false,
+								indexedAt: '2025-05-24T12:00:00.000Z'
+							},
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/all2',
+								cid: 'bafy-all-cid-2',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'follow',
+								isRead: true, 
+								indexedAt: '2025-05-23T12:00:00.000Z'
+							}
+						],
+						cursor: 'next-all-cursor'
+					}
+				};
+				mockListNotificationsInstance.mockResolvedValueOnce(mockAllNotificationsResponse);
+				// mockUpdateSeenInstance should NOT be called directly by the operation if unreadOnly is false and markRetrievedAsRead is true, 
+				// as seenAt is passed to listNotifications API call.
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				
+				// Expecting 2 notifications (all of them) + 1 pagination item
+				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all1')).toBeDefined();
+				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all2')).toBeDefined();
+				
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
+					limit: 25,
+					seenAt: expect.any(String) // Should be passed when unreadOnly is false and markRetrievedAsRead is true
+				});
+				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
+			});
+
+			it('should list notifications for analytics with unreadOnly: true and markRetrievedAsRead: false', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue: any) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 10;
+					if (name === 'unreadOnly') return true;
+					if (name === 'markRetrievedAsRead') return false;
+					if (name === 'cursor') return undefined;
+					return null;
+				});
+
+				const mockUnreadOnlyNoMarkResponse = {
+					data: {
+						notifications: [
+							{ uri: 'unread-nomark-1', isRead: false },
+							{ uri: 'read-nomark-1', isRead: true },
+							{ uri: 'unread-nomark-2', isRead: false },
+						],
+						cursor: 'next-unread-nomark-cursor'
+					}
+				};
+				mockListNotificationsInstance.mockResolvedValueOnce(mockUnreadOnlyNoMarkResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				
+				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0].find(item => item.json.uri === 'unread-nomark-1')).toBeDefined();
+				expect(result[0].find(item => item.json.uri === 'unread-nomark-2')).toBeDefined();
+
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ limit: 10 });
+				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
+			});
+
+			it('should list notifications for analytics with unreadOnly: false and markRetrievedAsRead: false', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue: any) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 15;
+					if (name === 'unreadOnly') return false;
+					if (name === 'markRetrievedAsRead') return false;
+					if (name === 'cursor') return undefined;
+					return null;
+				});
+
+				const mockAllNoMarkResponse = {
+					data: {
+						notifications: [
+							{ uri: 'all-nomark-1', isRead: false },
+							{ uri: 'all-nomark-2', isRead: true },
+						],
+						cursor: 'next-all-nomark-cursor'
+					}
+				};
+				mockListNotificationsInstance.mockResolvedValueOnce(mockAllNoMarkResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				
+				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0].find(item => item.json.uri === 'all-nomark-1')).toBeDefined();
+				expect(result[0].find(item => item.json.uri === 'all-nomark-2')).toBeDefined();
+
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ limit: 15 });
+				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
+			});
+
+			// Original tests for listNotifications (now implicitly unreadOnly: false, markRetrievedAsRead: false due to new defaults in operation if not overridden by node params)
+			it('should list notifications for analytics successfully (original test behavior check)', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'analytics';
 					if (name === 'operation') return 'listNotifications';
