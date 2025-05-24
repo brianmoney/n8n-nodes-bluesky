@@ -125,6 +125,27 @@ This operation is found under the "Feed" resource.
 This operation is found under the new "Graph" resource.
 - **Thread URI**: The AT URI of the root post of the thread you want to mute.
 
+## Feed Filtering Configuration (New)
+
+### Get Author Feed with Filters
+Enhanced filtering capabilities for the "Get Author Feed" operation:
+- **Actor**: The DID or handle of the author whose posts you want to fetch
+- **Limit**: Maximum number of posts to return (default: 50)
+- **Filter**: Choose the type of posts to retrieve:
+  - **Posts with Replies**: All posts, including replies (default)
+  - **Posts without Replies**: Only top-level posts, excludes replies
+  - **Posts with Media**: Only posts containing media attachments (images, videos, etc.)
+  - **Posts and Author Threads**: Posts and threads authored by the user
+  - **Posts with Video**: Only posts containing video content
+
+These filters are applied at the API level for optimal performance, allowing you to get exactly the content you need without post-processing.
+
+Perfect for:
+- Content curation and analysis
+- Media-focused workflows
+- Thread and conversation tracking
+- Engagement analysis by content type
+
 ## Analytics Configuration (New)
 
 The Analytics resource provides powerful engagement tracking and notification management capabilities for your Bluesky account.

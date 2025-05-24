@@ -114,17 +114,59 @@ export const feedProperties: INodeProperties[] = [
 			},
 		},
 	},
+	{
+		displayName: 'Filter',
+		name: 'filter',
+		type: 'options',
+		default: 'posts_with_replies',
+		description: 'Filter posts by type',
+		options: [
+			{
+				name: 'Posts and Author Threads',
+				value: 'posts_and_author_threads',
+				description: 'Posts and threads authored by the user',
+			},
+			{
+				name: 'Posts with Media',
+				value: 'posts_with_media',
+				description: 'Only posts containing media attachments',
+			},
+			{
+				name: 'Posts with Replies',
+				value: 'posts_with_replies',
+				description: 'All posts, including replies',
+			},
+			{
+				name: 'Posts with Video',
+				value: 'posts_with_video',
+				description: 'Only posts containing video content',
+			},
+			{
+				name: 'Posts without Replies',
+				value: 'posts_no_replies',
+				description: 'Only top-level posts (excludes replies)',
+			},
+		],
+		displayOptions: {
+			show: {
+				resource: ['feed'],
+				operation: ['getAuthorFeed'],
+			},
+		},
+	},
 ];
 
 export async function getAuthorFeed(
 	agent: AtpAgent,
 	actor: string,
 	limit: number,
+	filter?: string,
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 	const authorFeedResponse: AppBskyFeedGetAuthorFeed.Response = await agent.getAuthorFeed({
 		actor: actor,
 		limit: limit,
+		filter: filter,
 	});
 
 	authorFeedResponse.data.feed.forEach((feedPost: FeedViewPost) => {

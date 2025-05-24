@@ -5,6 +5,23 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Enhanced Feed Filtering**: Added comprehensive filtering options for "Get Author Feed" operation
+  - **Posts with Replies**: All posts, including replies (default behavior)
+  - **Posts without Replies**: Only top-level posts, excludes replies
+  - **Posts with Media**: Only posts containing media attachments
+  - **Posts and Author Threads**: Posts and threads authored by the user
+  - **Posts with Video**: Only posts containing video content
+- **API-Level Filtering**: Filters are applied at the Bluesky API level for optimal performance
+- **Enhanced User Experience**: Intuitive dropdown selection for content type filtering
+
+### Changed
+- Updated `getAuthorFeed` operation to accept optional filter parameter
+- Enhanced test coverage to include filter parameter validation
+- Improved documentation with detailed filter descriptions and use cases
+
 ## [1.3.0] - 2025-05-23
 
 ### Added

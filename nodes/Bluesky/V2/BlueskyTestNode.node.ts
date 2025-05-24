@@ -389,6 +389,7 @@ describe('BlueskyV2', () => {
 				if (name === 'operation') return 'getAuthorFeed';
 				if (name === 'actor') return 'did:plc:target-author';
 				if (name === 'limit') return 10;
+				if (name === 'filter') return 'posts_with_replies';
 				return null;
 			});
 			const mockFeedData = { data: { feed: [{ post: { text: 'Post 1' } }], cursor: 'cursor-123' }};
@@ -398,7 +399,7 @@ describe('BlueskyV2', () => {
 			// Not asserting result[0][0].json.feed due to issues in feedOperations.ts
 			// expect(result[0][0].json.feed).toEqual(mockFeedData.data.feed);
 			// expect(result[0][0].json.cursor).toEqual(mockFeedData.data.cursor);
-			expect(mockGetAuthorFeedInstance).toHaveBeenCalledWith({ actor: 'did:plc:target-author', limit: 10, cursor: undefined });
+			expect(mockGetAuthorFeedInstance).toHaveBeenCalledWith({ actor: 'did:plc:target-author', limit: 10, filter: 'posts_with_replies' });
 		});
 
 		it('should handle errors when getting author feed', async () => {
@@ -406,6 +407,7 @@ describe('BlueskyV2', () => {
 				if (name === 'operation') return 'getAuthorFeed';
 				if (name === 'actor') return 'did:plc:target-author';
 				if (name === 'limit') return 50;
+				if (name === 'filter') return 'posts_no_replies';
 				return null;
 			});
 			const errorMessage = 'Failed to get author feed';

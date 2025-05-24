@@ -383,7 +383,8 @@ export class BlueskyV2 implements INodeType {
 				case 'getAuthorFeed':
 					const authorFeedActor = this.getNodeParameter('actor', i) as string;
 					const authorFeedPostLimit = this.getNodeParameter('limit', i) as number;
-					const feedData = await getAuthorFeed(agent, authorFeedActor, authorFeedPostLimit);
+					const authorFeedFilter = this.getNodeParameter('filter', i, 'posts_with_replies') as string;
+					const feedData = await getAuthorFeed(agent, authorFeedActor, authorFeedPostLimit, authorFeedFilter);
 					returnData.push(...feedData);
 					break;
 
