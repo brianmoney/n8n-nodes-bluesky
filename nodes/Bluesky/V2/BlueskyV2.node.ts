@@ -37,6 +37,19 @@ import {
 import { getAuthorFeed, feedProperties, getTimeline, getPostThread } from './feedOperations';
 import { searchUsersOperation, searchPostsOperation, searchProperties } from './searchOperations';
 import { graphProperties, muteThreadOperation } from './graphOperations';
+import { 
+	getNotificationsOperation, 
+	getUnreadCountOperation, 
+	markAsSeenOperation,
+	notificationProperties 
+} from './notificationOperations';
+import {
+	listNotificationsOperation,
+	getUnreadCountOperation as analyticsGetUnreadCountOperation,
+	updateSeenNotificationsOperation,
+	getPostInteractionsOperation,
+	analyticsProperties
+} from './analyticsOperations';
 
 export class BlueskyV2 implements INodeType {
 	description: INodeTypeDescription;
@@ -56,7 +69,7 @@ export class BlueskyV2 implements INodeType {
 					required: true,
 				},
 			],
-			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties],
+			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties, ...notificationProperties, ...analyticsProperties],
 		};
 	}
 
@@ -132,6 +145,90 @@ export class BlueskyV2 implements INodeType {
 						);
 				}
 				continue; // Skip the rest of the loop for graph operations
+			}
+
+			if (resource === 'notifications') {
+				// Handle notification operations
+				switch (operation) {
+					case 'getNotifications':
+						const limit = this.getNodeParameter('limit', i, 50) as number;
+						const cursor = this.getNodeParameter('cursor', i, '') as string;
+						const since = this.getNodeParameter('since', i, '') as string;
+						const priority = this.getNodeParameter('priority', i, false) as boolean;
+						
+						const notificationsData = await getNotificationsOperation(
+							agent,
+							limit,
+							cursor || undefined,
+							since || undefined,
+							priority
+						);
+						returnData.push(...notificationsData);
+						break;
+					
+					case 'getUnreadCount':
+						const unreadCountData = await getUnreadCountOperation(agent);
+						returnData.push(...unreadCountData);
+						break;
+					
+					case 'markAsSeen':
+						const seenAt = this.getNodeParameter('seenAt', i) as string;
+						const markSeenData = await markAsSeenOperation(agent, seenAt);
+						returnData.push(...markSeenData);
+						break;
+					
+					default:
+						throw new NodeOperationError(
+							this.getNode(),
+							`The operation "${operation}" is not supported for resource "${resource}"!`,
+						);
+				}
+				continue; // Skip the rest of the loop for notification operations
+			}
+
+			if (resource === 'analytics') {
+				// Handle analytics operations
+				switch (operation) {
+					case 'listNotifications':
+						const analyticsLimit = this.getNodeParameter('limit', i, 50) as number;
+						const analyticsNotificationsData = await listNotificationsOperation(
+							agent,
+							analyticsLimit
+						);
+						returnData.push(...analyticsNotificationsData);
+						break;
+					
+					case 'getUnreadCount':
+						const analyticsUnreadCountData = await analyticsGetUnreadCountOperation(agent);
+						returnData.push(...analyticsUnreadCountData);
+						break;
+					
+					case 'updateSeenNotifications':
+						const analyticsSeenData = await updateSeenNotificationsOperation(agent);
+						returnData.push(...analyticsSeenData);
+						break;
+					
+					case 'getPostInteractions':
+						const postUri = this.getNodeParameter('uri', i) as string;
+						const interactionTypes = this.getNodeParameter('interactionTypes', i, ['likes', 'reposts', 'replies']) as string[];
+						const interactionLimit = this.getNodeParameter('interactionLimit', i, 50) as number;
+						
+						const interactionsData = await getPostInteractionsOperation(
+							agent,
+							postUri,
+							interactionTypes,
+							interactionLimit
+						);
+						returnData.push(...interactionsData);
+						break;
+					
+					default:
+						throw new NodeOperationError(
+							this.getNode(),
+							`The operation "${operation}" is not supported for resource "${resource}"!`,
+						);
+				}
+				continue; // Skip the rest of the loop for analytics operations
 			}
 
 			// Handle other resources' operations

@@ -22,6 +22,9 @@ const mockFeedSearchPostsInstance = jest.fn();
 const mockUploadBlobInstance = jest.fn(); // Added for media uploads
 const mockGetPostThreadInstance = jest.fn(); // Added for getPostThread
 const mockMuteThreadInstance = jest.fn(); // Added for muteThread
+const mockListNotificationsInstance = jest.fn(); // Added for notifications
+const mockGetUnreadCountInstance = jest.fn(); // Added for notification count
+const mockUpdateSeenInstance = jest.fn(); // Added for marking notifications as seen
 
 jest.mock('@atproto/api', () => {
 	const actualAtprotoApi = jest.requireActual('@atproto/api');
@@ -59,6 +62,11 @@ jest.mock('@atproto/api', () => {
 					},
 					feed: {
 						searchPosts: mockFeedSearchPostsInstance,
+					},
+					notification: {
+						listNotifications: mockListNotificationsInstance,
+						getUnreadCount: mockGetUnreadCountInstance,
+						updateSeen: mockUpdateSeenInstance,
 					},
 				},
 			},
@@ -98,6 +106,9 @@ describe('BlueskyV2', () => {
 		mockUploadBlobInstance.mockReset(); // Reset new mock
 		mockGetPostThreadInstance.mockReset(); // Reset for getPostThread
 		mockMuteThreadInstance.mockReset(); // Reset for muteThread
+		mockListNotificationsInstance.mockReset(); // Reset for notifications
+		mockGetUnreadCountInstance.mockReset(); // Reset for notification count
+		mockUpdateSeenInstance.mockReset(); // Reset for marking notifications as seen
 
 
 		node = new BlueskyV2(mockBaseDescription);
@@ -726,6 +737,384 @@ describe('BlueskyV2', () => {
 			const errorMessage = 'Failed to quote post';
 			mockPostInstance.mockRejectedValue(new Error(errorMessage));
 			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('getNotifications operation', () => {
+		it('should get notifications successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'getNotifications';
+				if (name === 'limit') return 50;
+				if (name === 'cursor') return '';
+				if (name === 'since') return '';
+				if (name === 'priority') return false;
+				return null;
+			});
+
+			const mockNotificationsResponse = {
+				data: {
+					notifications: [
+						{
+							uri: 'at://did:plc:test-author/app.bsky.notification/notif1',
+							cid: 'bafy-notification-cid-1',
+							author: { did: 'did:plc:test-author', handle: 'test.bsky.social' },
+							reason: 'like',
+							reasonSubject: 'at://did:plc:test-user/app.bsky.feed.post/post1',
+							record: { type: 'like' },
+							isRead: false,
+							indexedAt: '2025-05-23T10:00:00.000Z',
+							seenAt: null,
+							labels: []
+						}
+					],
+					cursor: 'next-cursor-123'
+				}
+			};
+			mockListNotificationsInstance.mockResolvedValue(mockNotificationsResponse);
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+			expect(result[0]).toHaveLength(2); // 1 notification + 1 pagination info
+			expect(result[0][0].json.uri).toBe('at://did:plc:test-author/app.bsky.notification/notif1');
+			expect(result[0][0].json.reason).toBe('like');
+			expect((result[0][1].json._pagination as any).cursor).toBe('next-cursor-123');
+			expect(mockListNotificationsInstance).toHaveBeenCalledWith({
+				limit: 50
+			});
+		});
+
+		it('should handle errors when getting notifications', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'getNotifications';
+				if (name === 'limit') return 50;
+				if (name === 'cursor') return '';
+				if (name === 'since') return '';
+				if (name === 'priority') return false;
+				return null;
+			});
+			const errorMessage = 'Failed to get notifications';
+			mockListNotificationsInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('getUnreadCount operation', () => {
+		it('should get unread count successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'getUnreadCount';
+				return null;
+			});
+
+			const mockUnreadCountResponse = {
+				data: {
+					count: 5
+				}
+			};
+			mockGetUnreadCountInstance.mockResolvedValue(mockUnreadCountResponse);
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+			expect(result[0]).toHaveLength(1);
+			expect(result[0][0].json.count).toBe(5);
+			expect(mockGetUnreadCountInstance).toHaveBeenCalled();
+		});
+
+		it('should handle errors when getting unread count', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'getUnreadCount';
+				return null;
+			});
+			const errorMessage = 'Failed to get unread count';
+			mockGetUnreadCountInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('markAsSeen operation', () => {
+		it('should mark notifications as seen successfully', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'markAsSeen';
+				if (name === 'seenAt') return '2025-05-23T10:30:00.000Z';
+				return null;
+			});
+
+			mockUpdateSeenInstance.mockResolvedValue({});
+
+			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+			expect(result[0]).toHaveLength(1);
+			expect(result[0][0].json.success).toBe(true);
+			expect(result[0][0].json.seenAt).toBe('2025-05-23T10:30:00.000Z');
+			expect(mockUpdateSeenInstance).toHaveBeenCalledWith({
+				seenAt: '2025-05-23T10:30:00.000Z'
+			});
+		});
+
+		it('should handle errors when marking notifications as seen', async () => {
+			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'notifications';
+				if (name === 'operation') return 'markAsSeen';
+				if (name === 'seenAt') return '2025-05-23T10:30:00.000Z';
+				return null;
+			});
+			const errorMessage = 'Failed to mark notifications as seen';
+			mockUpdateSeenInstance.mockRejectedValue(new Error(errorMessage));
+			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+		});
+	});
+
+	describe('Analytics Operations', () => {
+		describe('listNotifications operation', () => {
+			it('should list notifications for analytics successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 25;
+					return null;
+				});
+
+				const mockAnalyticsNotificationsResponse = {
+					data: {
+						notifications: [
+							{
+								uri: 'at://did:plc:analytics-author/app.bsky.notification/notif1',
+								cid: 'bafy-analytics-notification-cid-1',
+								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
+								reason: 'repost',
+								reasonSubject: 'at://did:plc:test-user/app.bsky.feed.post/analytics-post1',
+								record: { type: 'repost' },
+								isRead: true,
+								indexedAt: '2025-05-23T11:00:00.000Z'
+							}
+						]
+					}
+				};
+				mockListNotificationsInstance.mockResolvedValue(mockAnalyticsNotificationsResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.uri).toBe('at://did:plc:analytics-author/app.bsky.notification/notif1');
+				expect(result[0][0].json.reason).toBe('repost');
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
+					limit: 25
+				});
+			});
+
+			it('should handle errors when listing notifications for analytics', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'listNotifications';
+					if (name === 'limit') return 25;
+					return null;
+				});
+				const errorMessage = 'Failed to list notifications for analytics';
+				mockListNotificationsInstance.mockRejectedValue(new Error(errorMessage));
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+			});
+		});
+
+		describe('getUnreadCount operation', () => {
+			it('should get unread count for analytics successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'getUnreadCount';
+					return null;
+				});
+
+				const mockAnalyticsUnreadCountResponse = {
+					data: {
+						count: 12
+					}
+				};
+				mockGetUnreadCountInstance.mockResolvedValue(mockAnalyticsUnreadCountResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.count).toBe(12);
+				expect(mockGetUnreadCountInstance).toHaveBeenCalled();
+			});
+
+			it('should handle errors when getting unread count for analytics', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'getUnreadCount';
+					return null;
+				});
+				const errorMessage = 'Failed to get unread count for analytics';
+				mockGetUnreadCountInstance.mockRejectedValue(new Error(errorMessage));
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+			});
+		});
+
+		describe('updateSeenNotifications operation', () => {
+			it('should update seen notifications for analytics successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'updateSeenNotifications';
+					return null;
+				});
+
+				mockUpdateSeenInstance.mockResolvedValue({});
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.success).toBe(true);
+				expect(result[0][0].json.message).toBe('Notifications marked as seen');
+				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({
+					seenAt: expect.any(String)
+				});
+			});
+
+			it('should handle errors when updating seen notifications for analytics', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'updateSeenNotifications';
+					return null;
+				});
+				const errorMessage = 'Failed to update seen notifications for analytics';
+				mockUpdateSeenInstance.mockRejectedValue(new Error(errorMessage));
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
+			});
+		});
+
+		describe('getPostInteractions operation', () => {
+			it('should get post interactions successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'getPostInteractions';
+					if (name === 'uri') return 'at://did:plc:test-user/app.bsky.feed.post/analytics-test';
+					if (name === 'interactionTypes') return ['likes', 'reposts', 'replies'];
+					if (name === 'interactionLimit') return 10;
+					return null;
+				});
+
+				// Mock getLikes response
+				const mockGetLikesInstance = jest.fn().mockResolvedValue({
+					data: {
+						likes: [
+							{ actor: { did: 'did:plc:liker1', handle: 'liker1.bsky.social' }, createdAt: '2025-05-23T10:30:00.000Z', indexedAt: '2025-05-23T10:30:01.000Z' },
+							{ actor: { did: 'did:plc:liker2', handle: 'liker2.bsky.social' }, createdAt: '2025-05-23T10:35:00.000Z', indexedAt: '2025-05-23T10:35:01.000Z' }
+						]
+					}
+				});
+
+				// Mock getRepostedBy response
+				const mockGetRepostedByInstance = jest.fn().mockResolvedValue({
+					data: {
+						repostedBy: [
+							{ did: 'did:plc:reposter1', handle: 'reposter1.bsky.social' }
+						]
+					}
+				});
+
+				// Mock getPostThread response for replies
+				const mockThreadResponse = {
+					data: {
+						thread: {
+							$type: 'app.bsky.feed.defs#threadViewPost',
+							post: { uri: 'at://did:plc:test-user/app.bsky.feed.post/analytics-test' },
+							replies: [
+								{
+									$type: 'app.bsky.feed.defs#threadViewPost',
+									post: {
+										uri: 'at://did:plc:replier1/app.bsky.feed.post/reply1',
+										author: { did: 'did:plc:replier1', handle: 'replier1.bsky.social' }
+									}
+								}
+							]
+						}
+					}
+				};
+
+				// Temporarily replace the agent methods for this test
+				const originalAgent = jest.requireMock('@atproto/api').AtpAgent;
+				jest.mocked(originalAgent).mockImplementation(() => ({
+					session: { did: 'test-did' },
+					login: mockLoginInstance,
+					getLikes: mockGetLikesInstance,
+					getRepostedBy: mockGetRepostedByInstance,
+					getPostThread: jest.fn().mockResolvedValue(mockThreadResponse),
+					// ... other methods
+					app: {
+						bsky: {
+							graph: {
+								block: {
+									create: mockGraphBlockCreateInstance,
+									delete: mockGraphBlockDeleteInstance,
+								},
+								muteThread: mockMuteThreadInstance,
+							},
+							actor: {
+								searchActors: mockActorSearchActorsInstance,
+							},
+							feed: {
+								searchPosts: mockFeedSearchPostsInstance,
+							},
+							notification: {
+								listNotifications: mockListNotificationsInstance,
+								getUnreadCount: mockGetUnreadCountInstance,
+								updateSeen: mockUpdateSeenInstance,
+							},
+						},
+					},
+				}));
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.likes).toHaveLength(2);
+				expect(result[0][0].json.reposts).toHaveLength(1);
+				expect(result[0][0].json.replies).toHaveLength(1);
+				const analytics = result[0][0].json.analytics as any;
+				expect(analytics.likeCount).toBe(2);
+				expect(analytics.repostCount).toBe(1);
+				expect(analytics.replyCount).toBe(1);
+			});
+
+			it('should handle errors when getting post interactions', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'analytics';
+					if (name === 'operation') return 'getPostInteractions';
+					if (name === 'uri') return 'at://did:plc:test-user/app.bsky.feed.post/analytics-test';
+					if (name === 'interactionTypes') return ['likes'];
+					if (name === 'interactionLimit') return 10;
+					return null;
+				});
+
+				// Mock getLikes to throw an error
+				const originalAgent = jest.requireMock('@atproto/api').AtpAgent;
+				jest.mocked(originalAgent).mockImplementation(() => ({
+					session: { did: 'test-did' },
+					login: mockLoginInstance,
+					getLikes: jest.fn().mockRejectedValue(new Error('Failed to get likes')),
+					// ... other methods
+					app: {
+						bsky: {
+							graph: {
+								block: {
+									create: mockGraphBlockCreateInstance,
+									delete: mockGraphBlockDeleteInstance,
+								},
+								muteThread: mockMuteThreadInstance,
+							},
+							actor: {
+								searchActors: mockActorSearchActorsInstance,
+							},
+							feed: {
+								searchPosts: mockFeedSearchPostsInstance,
+							},
+							notification: {
+								listNotifications: mockListNotificationsInstance,
+								getUnreadCount: mockGetUnreadCountInstance,
+								updateSeen: mockUpdateSeenInstance,
+							},
+						},
+					},
+				}));
+
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('Failed to get likes');
+			});
 		});
 	});
 });

@@ -7,12 +7,20 @@ export const resourcesProperty: INodeProperties = {
 	noDataExpression: true,
 	options: [
 		{
+			name: 'Analytics',
+			value: 'analytics',
+		},
+		{
 			name: 'Feed',
 			value: 'feed',
 		},
 		{
 			name: 'Graph',
 			value: 'graph',
+		},
+		{
+			name: 'Notification',
+			value: 'notifications',
 		},
 		{
 			name: 'Post',

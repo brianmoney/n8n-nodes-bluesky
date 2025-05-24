@@ -5,6 +5,33 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-05-23
+
+### Added
+- **Analytics Resource**: New analytics capabilities for post performance tracking and engagement automation
+- **Notification Management**: List notifications with filtering options (priority, pagination, date ranges)
+- **Unread Count Tracking**: Get real-time count of unread notifications for the authenticated user
+- **Mark as Seen**: Update notification read status with timestamp control
+- **Post Interaction Analytics**: Comprehensive analysis of post engagement including:
+  - Likes tracking with actor details and timestamps
+  - Reposts tracking with user information
+  - Replies analysis with thread context
+  - Configurable interaction types and limits
+  - Automatic analytics summary with aggregated counts
+- **Enhanced Notification Operations**: Improved notification handling with cursor-based pagination, priority filtering, and date-based queries
+- **Type-Safe Implementation**: Full TypeScript support with proper error handling throughout analytics operations
+
+### Changed
+- Updated notification operations to use correct Bluesky API endpoints and response structures
+- Improved error handling and user feedback for analytics operations
+- Enhanced code organization with dedicated analytics operations module
+
+### Technical
+- Fixed TypeScript compilation issues in analytics operations
+- Resolved all ESLint warnings and maintained code quality standards
+- Added comprehensive test coverage for analytics features
+- Integrated analytics seamlessly into existing BlueskyV2 node architecture
+
 ## [1.2.0] - 2025-05-23
 
 ### Added
