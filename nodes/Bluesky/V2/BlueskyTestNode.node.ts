@@ -210,6 +210,7 @@ describe('BlueskyV2', () => {
 	describe('post operation', () => {
 		it('should create a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'post';
 				if (name === 'postText') return 'This is a test post';
 				if (name === 'langs') return ['en'];
@@ -310,6 +311,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when creating a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'post';
 				if (name === 'postText') return 'This is a test post';
 				if (name === 'websiteCard') return {}; // Fix for "Cannot read properties of null (reading 'details')"
@@ -327,6 +329,7 @@ describe('BlueskyV2', () => {
 	describe('deletePost operation', () => {
 		it('should delete a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deletePost';
 				if (name === 'uri') return 'at://did:plc:test-repo/app.bsky.feed.post/123';
 				return null;
@@ -344,6 +347,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when deleting a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deletePost';
 				if (name === 'uri') return 'at://did:plc:test-repo/app.bsky.feed.post/123';
 				return null;
@@ -359,6 +363,7 @@ describe('BlueskyV2', () => {
 	describe('like operation', () => {
 		it('should like a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'like';
 				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/123';
 				if (name === 'cid') return 'bafy...';
@@ -376,6 +381,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when liking a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'like';
 				if (name === 'uri') return 'at://did:plc:test/app.bsky.feed.post/123';
 				if (name === 'cid') return 'bafy...';
@@ -391,6 +397,7 @@ describe('BlueskyV2', () => {
 	describe('deleteLike operation', () => {
 		it('should delete a like successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deleteLike';
 				if (name === 'uri') return 'at://did:plc:test-user-did/app.bsky.feed.like/selfLikeRkey';
 				return null;
@@ -404,6 +411,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when deleting a like', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deleteLike';
 				if (name === 'uri') return 'at://did:plc:test-user-did/app.bsky.feed.like/selfLikeRkey';
 				return null;
@@ -417,6 +425,7 @@ describe('BlueskyV2', () => {
 	describe('repost operation', () => {
 		it('should repost a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'repost';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -432,6 +441,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when reposting a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'repost';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -446,6 +456,7 @@ describe('BlueskyV2', () => {
 	describe('deleteRepost operation', () => {
 		it('should delete a repost successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deleteRepost';
 				if (name === 'uri') return 'at://did:plc:test-did/app.bsky.feed.repost/myRepostRkey';
 				return null;
@@ -459,6 +470,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when deleting a repost', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'deleteRepost';
 				if (name === 'uri') return 'at://did:plc:test-did/app.bsky.feed.repost/myRepostRkey';
 				return null;
@@ -473,6 +485,7 @@ describe('BlueskyV2', () => {
 	describe('getAuthorFeed operation', () => {
 		it('should get author feed successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'feed';
 				if (name === 'operation') return 'getAuthorFeed';
 				if (name === 'actor') return 'did:plc:target-author';
 				if (name === 'limit') return 10;
@@ -491,6 +504,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when getting author feed', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'feed';
 				if (name === 'operation') return 'getAuthorFeed';
 				if (name === 'actor') return 'did:plc:target-author';
 				if (name === 'limit') return 50;
@@ -506,6 +520,7 @@ describe('BlueskyV2', () => {
 	describe('getTimeline operation', () => {
 		it('should get timeline successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'feed';
 				if (name === 'operation') return 'getTimeline';
 				if (name === 'algorithm') return 'reverse-chronological';
 				if (name === 'limit') return 20;
@@ -523,6 +538,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when getting timeline', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'feed';
 				if (name === 'operation') return 'getTimeline';
 				if (name === 'limit') return 50;
 				return null;
@@ -536,6 +552,7 @@ describe('BlueskyV2', () => {
 	describe('getProfile operation', () => {
 		it('should get profile successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'getProfile';
 				if (name === 'actor') return 'did:plc:target-actor';
 				return null;
@@ -550,6 +567,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when getting profile', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'getProfile';
 				if (name === 'actor') return 'did:plc:target-actor';
 				return null;
@@ -563,6 +581,7 @@ describe('BlueskyV2', () => {
 	describe('mute operation', () => {
 		it('should mute an actor successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'mute';
 				if (name === 'did') return 'did:plc:target-to-mute';
 				return null;
@@ -576,6 +595,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when muting an actor', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'mute';
 				if (name === 'did') return 'did:plc:target-to-mute';
 				return null;
@@ -589,6 +609,7 @@ describe('BlueskyV2', () => {
 	describe('unmute operation', () => {
 		it('should unmute an actor successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'unmute';
 				if (name === 'did') return 'did:plc:target-to-unmute';
 				return null;
@@ -602,6 +623,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when unmuting an actor', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'unmute';
 				if (name === 'did') return 'did:plc:target-to-unmute';
 				return null;
@@ -615,6 +637,7 @@ describe('BlueskyV2', () => {
 	describe('block operation', () => {
 		it('should block an actor successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'block';
 				if (name === 'did') return 'did:plc:target-to-block';
 				return null;
@@ -636,6 +659,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when blocking an actor', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'block';
 				if (name === 'did') return 'did:plc:target-to-block';
 				return null;
@@ -649,6 +673,7 @@ describe('BlueskyV2', () => {
 	describe('unblock operation', () => {
 		it('should unblock an actor successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'unblock';
 				if (name === 'uri') return 'at://did:plc:test-did/app.bsky.graph.block/blockRkey';
 				return null;
@@ -665,6 +690,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when unblocking an actor', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'user';
 				if (name === 'operation') return 'unblock';
 				if (name === 'uri') return 'at://did:plc:test-did/app.bsky.graph.block/blockRkey';
 				return null;
@@ -745,6 +771,7 @@ describe('BlueskyV2', () => {
 	describe('reply operation', () => {
 		it('should reply to a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'reply';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -784,6 +811,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when replying to a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'reply';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -800,6 +828,7 @@ describe('BlueskyV2', () => {
 	describe('quote operation', () => {
 		it('should quote a post successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'quote';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -818,6 +847,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when quoting a post', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'quote';
 				if (name === 'uri') return 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey';
 				if (name === 'cid') return 'bafy-original-post-cid';
@@ -831,69 +861,10 @@ describe('BlueskyV2', () => {
 		});
 	});
 
-	describe('getNotifications operation', () => {
-		it('should get notifications successfully', async () => {
-			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
-				if (name === 'operation') return 'getNotifications';
-				if (name === 'limit') return 50;
-				if (name === 'cursor') return '';
-				if (name === 'since') return '';
-				if (name === 'priority') return false;
-				return null;
-			});
-
-			const mockNotificationsResponse = {
-				data: {
-					notifications: [
-						{
-							uri: 'at://did:plc:test-author/app.bsky.notification/notif1',
-							cid: 'bafy-notification-cid-1',
-							author: { did: 'did:plc:test-author', handle: 'test.bsky.social' },
-							reason: 'like',
-							reasonSubject: 'at://did:plc:test-user/app.bsky.feed.post/post1',
-							record: { type: 'like' },
-							isRead: false,
-							indexedAt: '2025-05-23T10:00:00.000Z',
-							seenAt: null,
-							labels: []
-						}
-					],
-					cursor: 'next-cursor-123'
-				}
-			};
-			mockListNotificationsInstance.mockResolvedValue(mockNotificationsResponse);
-
-			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-			expect(result[0]).toHaveLength(2); // 1 notification + 1 pagination info
-			expect(result[0][0].json.uri).toBe('at://did:plc:test-author/app.bsky.notification/notif1');
-			expect(result[0][0].json.reason).toBe('like');
-			expect((result[0][1].json._pagination as any).cursor).toBe('next-cursor-123');
-			expect(mockListNotificationsInstance).toHaveBeenCalledWith({
-				limit: 50
-			});
-		});
-
-		it('should handle errors when getting notifications', async () => {
-			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
-				if (name === 'operation') return 'getNotifications';
-				if (name === 'limit') return 50;
-				if (name === 'cursor') return '';
-				if (name === 'since') return '';
-				if (name === 'priority') return false;
-				return null;
-			});
-			const errorMessage = 'Failed to get notifications';
-			mockListNotificationsInstance.mockRejectedValue(new Error(errorMessage));
-			await expect(node.execute.call(executeFunctions)).rejects.toThrow(errorMessage);
-		});
-	});
-
 	describe('getUnreadCount operation', () => {
 		it('should get unread count successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
+				if (name === 'resource') return 'analytics';
 				if (name === 'operation') return 'getUnreadCount';
 				return null;
 			});
@@ -913,7 +884,7 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when getting unread count', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
+				if (name === 'resource') return 'analytics';
 				if (name === 'operation') return 'getUnreadCount';
 				return null;
 			});
@@ -926,8 +897,8 @@ describe('BlueskyV2', () => {
 	describe('markAsSeen operation', () => {
 		it('should mark notifications as seen successfully', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
-				if (name === 'operation') return 'markAsSeen';
+				if (name === 'resource') return 'analytics';
+				if (name === 'operation') return 'updateSeenNotifications';
 				if (name === 'seenAt') return '2025-05-23T10:30:00.000Z';
 				return null;
 			});
@@ -945,8 +916,8 @@ describe('BlueskyV2', () => {
 
 		it('should handle errors when marking notifications as seen', async () => {
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
-				if (name === 'resource') return 'notifications';
-				if (name === 'operation') return 'markAsSeen';
+				if (name === 'resource') return 'analytics';
+				if (name === 'operation') return 'updateSeenNotifications';
 				if (name === 'seenAt') return '2025-05-23T10:30:00.000Z';
 				return null;
 			});
@@ -966,7 +937,6 @@ describe('BlueskyV2', () => {
 					// unreadOnly and markRetrievedAsRead will use their default values (true)
 					if (name === 'unreadOnly') return defaultValue; // Should be true by default in BlueskyV2.node.ts
 					if (name === 'markRetrievedAsRead') return defaultValue; // Should be true by default
-					if (name === 'cursor') return undefined;
 					return null;
 				});
 
@@ -998,7 +968,7 @@ describe('BlueskyV2', () => {
 								indexedAt: '2025-05-24T11:00:00.000Z'
 							}
 						],
-						cursor: 'next-page-cursor'
+						cursor: undefined // No more pages - this will stop the loop
 					}
 				};
 				mockListNotificationsInstance.mockResolvedValueOnce(mockUnreadNotificationsResponse);
@@ -1006,14 +976,15 @@ describe('BlueskyV2', () => {
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 				
-				// Expecting 2 unread notifications + 1 pagination item
-				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				// Expecting 2 unread notifications (no pagination item since cursor is undefined)
+				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread2')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/read1')).toBeUndefined();
 				
 				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
-					limit: 25, // This is the API limit per call, client-side filtering handles userRequestedLimit
+					limit: 100, // API_PAGE_SIZE is 100, not 25
+					cursor: undefined,
 					// seenAt should NOT be passed when unreadOnly is true, as per current logic
 				});
 				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({ seenAt: '2025-05-24T11:00:00.000Z' });
@@ -1026,7 +997,6 @@ describe('BlueskyV2', () => {
 					if (name === 'limit') return 25;
 					if (name === 'unreadOnly') return false;
 					if (name === 'markRetrievedAsRead') return true;
-					if (name === 'cursor') return undefined;
 					return null;
 				});
 
@@ -1054,21 +1024,25 @@ describe('BlueskyV2', () => {
 					}
 				};
 				mockListNotificationsInstance.mockResolvedValueOnce(mockAllNotificationsResponse);
-				// mockUpdateSeenInstance should NOT be called directly by the operation if unreadOnly is false and markRetrievedAsRead is true, 
-				// as seenAt is passed to listNotifications API call.
+				// When unreadOnly is false and markRetrievedAsRead is true, updateSeen should be called separately
+				// since seenAt is not supported by the listNotifications API endpoint
+				mockUpdateSeenInstance.mockResolvedValueOnce({});
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 				
-				// Expecting 2 notifications (all of them) + 1 pagination item
-				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				// Expecting 2 notifications (all of them)
+				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all2')).toBeDefined();
 				
 				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
 					limit: 25,
-					seenAt: expect.any(String) // Should be passed when unreadOnly is false and markRetrievedAsRead is true
+					cursor: undefined
+					// seenAt is NOT passed to listNotifications as it's not supported by the API
 				});
-				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
+				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({
+					seenAt: expect.any(String) // Should be called separately when markRetrievedAsRead is true
+				});
 			});
 
 			it('should list notifications for analytics with unreadOnly: true and markRetrievedAsRead: false', async () => {
@@ -1089,18 +1063,21 @@ describe('BlueskyV2', () => {
 							{ uri: 'read-nomark-1', isRead: true },
 							{ uri: 'unread-nomark-2', isRead: false },
 						],
-						cursor: 'next-unread-nomark-cursor'
+						cursor: undefined // No more pages - this will stop the loop
 					}
 				};
 				mockListNotificationsInstance.mockResolvedValueOnce(mockUnreadOnlyNoMarkResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 				
-				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0]).toHaveLength(2); // Only unread notifications, no pagination
 				expect(result[0].find(item => item.json.uri === 'unread-nomark-1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'unread-nomark-2')).toBeDefined();
 
-				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ limit: 10 });
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ 
+					limit: 100, // API_PAGE_SIZE 
+					cursor: undefined,
+				});
 				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
 			});
 
@@ -1111,7 +1088,6 @@ describe('BlueskyV2', () => {
 					if (name === 'limit') return 15;
 					if (name === 'unreadOnly') return false;
 					if (name === 'markRetrievedAsRead') return false;
-					if (name === 'cursor') return undefined;
 					return null;
 				});
 
@@ -1128,20 +1104,23 @@ describe('BlueskyV2', () => {
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 				
-				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(2);
+				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'all-nomark-1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'all-nomark-2')).toBeDefined();
 
-				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ limit: 15 });
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ limit: 15, cursor: undefined });
 				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
 			});
 
-			// Original tests for listNotifications (now implicitly unreadOnly: false, markRetrievedAsRead: false due to new defaults in operation if not overridden by node params)
+			// Original tests for listNotifications behavior with default parameters (unreadOnly: true, markRetrievedAsRead: true)
 			it('should list notifications for analytics successfully (original test behavior check)', async () => {
-				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue: any) => {
 					if (name === 'resource') return 'analytics';
 					if (name === 'operation') return 'listNotifications';
 					if (name === 'limit') return 25;
+					if (name === 'unreadOnly') return defaultValue; // Will be true by default
+					if (name === 'markRetrievedAsRead') return defaultValue; // Will be true by default
+					if (name === 'cursor') return undefined;
 					return null;
 				});
 
@@ -1155,21 +1134,24 @@ describe('BlueskyV2', () => {
 								reason: 'repost',
 								reasonSubject: 'at://did:plc:test-user/app.bsky.feed.post/analytics-post1',
 								record: { type: 'repost' },
-								isRead: true,
+								isRead: false, // Changed to false since unreadOnly: true will filter for unread
 								indexedAt: '2025-05-23T11:00:00.000Z'
 							}
 						]
 					}
 				};
 				mockListNotificationsInstance.mockResolvedValue(mockAnalyticsNotificationsResponse);
+				mockUpdateSeenInstance.mockResolvedValue({}); // For markRetrievedAsRead
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(1);
+				expect(result[0].filter(item => !item.json._pagination)).toHaveLength(1);
 				expect(result[0][0].json.uri).toBe('at://did:plc:analytics-author/app.bsky.notification/notif1');
 				expect(result[0][0].json.reason).toBe('repost');
 				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
-					limit: 25
+					limit: 100, // API_PAGE_SIZE
+					cursor: undefined,
 				});
+				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({ seenAt: '2025-05-23T11:00:00.000Z' });
 			});
 
 			it('should handle errors when listing notifications for analytics', async () => {
@@ -1231,7 +1213,8 @@ describe('BlueskyV2', () => {
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 				expect(result[0]).toHaveLength(1);
 				expect(result[0][0].json.success).toBe(true);
-				expect(result[0][0].json.message).toBe('Notifications marked as seen');
+				expect(result[0][0].json.message).toMatch(/^Notifications marked as seen up to /);
+				expect(result[0][0].json.seenAt).toBeDefined();
 				expect(mockUpdateSeenInstance).toHaveBeenCalledWith({
 					seenAt: expect.any(String)
 				});

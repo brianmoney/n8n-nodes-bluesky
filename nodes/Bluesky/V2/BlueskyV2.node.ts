@@ -39,9 +39,6 @@ import { searchUsersOperation, searchPostsOperation, searchProperties } from './
 import { graphProperties, muteThreadOperation } from './graphOperations';
 import {
 	// getNotificationsOperation, // Removed as it's no longer exported / replaced by enhanced listNotificationsOperation
-	getUnreadCountOperation,
-	markAsSeenOperation,
-	notificationProperties,
 	listNotificationsOperation as enhancedListNotifications, // Renamed for clarity and to point to the enhanced version
 } from './notificationOperations';
 import {
@@ -85,7 +82,7 @@ export class BlueskyV2 implements INodeType {
 					required: true,
 				},
 			],
-			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties, ...notificationProperties, ...analyticsProperties], // ...chatProperties temporarily disabled
+			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties, ...analyticsProperties], // ...chatProperties temporarily disabled, notificationProperties removed as redundant
 		};
 	}
 
@@ -163,66 +160,19 @@ export class BlueskyV2 implements INodeType {
 				continue; // Skip the rest of the loop for graph operations
 			}
 
-			if (resource === 'notifications') {
-				// Handle notification operations
-				switch (operation) {
-					case 'getNotifications':
-						// This operation is currently unavailable as getNotificationsOperation is no longer exported
-						// from notificationOperations.ts. It was likely replaced by the enhanced listNotificationsOperation.
-						throw new NodeOperationError(
-							this.getNode(),
-							`The 'getNotifications' operation under 'notifications' resource is currently unavailable. Please check if 'listNotifications' under 'analytics' resource meets your needs.`,
-						);
-						// const limit = this.getNodeParameter('limit', i, 50) as number;
-						// const cursor = this.getNodeParameter('cursor', i, '') as string;
-						// const since = this.getNodeParameter('since', i, '') as string;
-						// const priority = this.getNodeParameter('priority', i, false) as boolean;
-						//
-						// const notificationsData = await getNotificationsOperation( // This function is no longer available
-						// 	agent,
-						// 	limit,
-						// 	cursor || undefined,
-						// 	since || undefined,
-						// 	priority
-						// );
-						// returnData.push(...notificationsData);
-						break;
-					
-					case 'getUnreadCount':
-						const unreadCountData = await getUnreadCountOperation(agent); // Uses getUnreadCountOperation from notificationOperations
-						returnData.push(...unreadCountData);
-						break;
-					
-					case 'markAsSeen':
-						const seenAt = this.getNodeParameter('seenAt', i) as string;
-						const markSeenData = await markAsSeenOperation(agent, seenAt); // Uses markAsSeenOperation from notificationOperations
-						returnData.push(...markSeenData);
-						break;
-					
-					default:
-						throw new NodeOperationError(
-							this.getNode(),
-							`The operation "${operation}" is not supported for resource "${resource}"!`,
-						);
-				}
-				continue; // Skip the rest of the loop for notification operations
-			}
-
 			if (resource === 'analytics') {
 				// Handle analytics operations
 				switch (operation) {
 					case 'listNotifications':
 						const analyticsLimit = this.getNodeParameter('limit', i, 50) as number;
-						const unreadOnly = this.getNodeParameter('unreadOnly', i, true) as boolean; // Added
-						const markRetrievedAsRead = this.getNodeParameter('markRetrievedAsRead', i, true) as boolean; // Added
-						const initialCursor = this.getNodeParameter('cursor', i, undefined) as string | undefined; // Added for consistency
+						const unreadOnly = this.getNodeParameter('unreadOnly', i, true) as boolean;
+						const markRetrievedAsRead = this.getNodeParameter('markRetrievedAsRead', i, true) as boolean;
 
-						const analyticsNotificationsData = await enhancedListNotifications( // Use the aliased and enhanced function
+						const analyticsNotificationsData = await enhancedListNotifications(
 							agent,
 							analyticsLimit,
 							unreadOnly,
 							markRetrievedAsRead,
-							initialCursor,
 						);
 						returnData.push(...analyticsNotificationsData);
 						break;
@@ -233,7 +183,8 @@ export class BlueskyV2 implements INodeType {
 						break;
 					
 					case 'updateSeenNotifications':
-						const analyticsSeenData = await updateSeenNotificationsOperation(agent);
+						const seenAt = this.getNodeParameter('seenAt', i, '') as string;
+						const analyticsSeenData = await updateSeenNotificationsOperation(agent, seenAt);
 						returnData.push(...analyticsSeenData);
 						break;
 					
@@ -367,10 +318,20 @@ export class BlueskyV2 implements INodeType {
 			// 			);
 			// 	}
 			// 	continue; // Skip the rest of the loop for chat operations
-			// }
+			//			}
 
-			// Handle other resources' operations
-			switch (operation) {
+			// Chat operations temporarily disabled until Bluesky enables chat APIs on main instance
+			if (resource === 'chat') {
+				// All chat operations are disabled
+				throw new NodeOperationError(
+					this.getNode(),
+					`The operation "${operation}" is not supported!`,
+				);
+			}
+
+			// Handle other resources' operations (post, user, feed, search, graph)
+			if (['post', 'user', 'feed', 'search', 'graph'].includes(resource)) {
+				switch (operation) {
 				/**
 				 * Post operations
 				 */
@@ -585,20 +546,28 @@ export class BlueskyV2 implements INodeType {
 					returnData.push(...blockData);
 					break;
 
-				case 'unblock':
+								case 'unblock':
 					const uriUnblock = this.getNodeParameter('uri', i) as string;
 					const unblockData = await unblockOperation(agent, uriUnblock);
 					returnData.push(...unblockData);
 					break;
 
-					default:
+				default:
 					throw new NodeOperationError(
 						this.getNode(),
-						`The operation "${operation}" is not supported!`
+						`The operation "${operation}" is not supported for resource "${resource}"!`
 					);
 			}
+			continue; // Skip the rest of the loop for these resource operations
 		}
 
-		return [returnData];
+		// If we reach here, the resource is not supported
+		throw new NodeOperationError(
+			this.getNode(),
+			`The resource "${resource}" is not supported!`
+		);
 	}
+
+	return [returnData];
+}
 }

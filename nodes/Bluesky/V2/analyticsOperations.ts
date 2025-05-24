@@ -1,5 +1,8 @@
 import { INodeExecutionData, INodeProperties } from 'n8n-workflow';
-import { AtpAgent, AppBskyNotificationListNotifications, AppBskyNotificationGetUnreadCount } from '@atproto/api';
+import { AtpAgent, AppBskyNotificationGetUnreadCount } from '@atproto/api';
+
+// Import the enhanced listNotificationsOperation from notificationOperations
+export { listNotificationsOperation } from './notificationOperations';
 
 export const analyticsProperties: INodeProperties[] = [
 	{
@@ -16,8 +19,8 @@ export const analyticsProperties: INodeProperties[] = [
 			{
 				name: 'List Notifications',
 				value: 'listNotifications',
-				description: 'Get a list of notifications for the authenticated user',
-				action: 'Get notifications',
+				description: 'List notifications for the authenticated user (enhanced with filters)',
+				action: 'List notifications',
 			},
 			{
 				name: 'Get Unread Notification Count',
@@ -46,13 +49,53 @@ export const analyticsProperties: INodeProperties[] = [
 		type: 'number',
 		typeOptions: {
 			minValue: 1,
+			maxValue: 1000,
 		},
 		default: 50,
-		description: 'Max number of results to return',
+		description: 'Maximum number of notifications to return (between 1 and 1000). Pagination is handled automatically.',
 		displayOptions: {
 			show: {
 				resource: ['analytics'],
 				operation: ['listNotifications'],
+			},
+		},
+	},
+	{
+		displayName: 'Unread Only',
+		name: 'unreadOnly',
+		type: 'boolean',
+		default: true,
+		description: 'If true, only unread notifications will be returned. Note: Pagination is based on underlying API pages.',
+		displayOptions: {
+			show: {
+				resource: ['analytics'],
+				operation: ['listNotifications'],
+			},
+		},
+	},
+	{
+		displayName: 'Mark Retrieved as Read',
+		name: 'markRetrievedAsRead',
+		type: 'boolean',
+		default: true,
+		description: 'Whether to mark retrieved notifications as read. For "List Notifications", if "Unread Only" is true, only the specifically retrieved unread items are marked.',
+		displayOptions: {
+			show: {
+				resource: ['analytics'],
+				operation: ['listNotifications'],
+			},
+		},
+	},
+	{
+		displayName: 'Seen At (ISO Date String)',
+		name: 'seenAt',
+		type: 'string',
+		default: '',
+		description: 'Optional ISO 8601 date string. If provided, marks notifications up to this time as read. If not, uses current time.',
+		displayOptions: {
+			show: {
+				resource: ['analytics'],
+				operation: ['updateSeenNotifications'],
 			},
 		},
 	},
@@ -117,40 +160,6 @@ export const analyticsProperties: INodeProperties[] = [
 ];
 
 /**
- * List notifications for the authenticated user
- */
-export async function listNotificationsOperation(
-	agent: AtpAgent,
-	limit: number,
-): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	// Fetch notifications
-	const response: AppBskyNotificationListNotifications.Response = await agent.app.bsky.notification.listNotifications({
-		limit,
-	});
-
-	if (response.data && response.data.notifications) {
-		response.data.notifications.forEach((notification) => {
-			returnData.push({
-				json: {
-					reason: notification.reason,
-					reasonSubject: notification.reasonSubject,
-					author: notification.author,
-					record: notification.record,
-					isRead: notification.isRead,
-					indexedAt: notification.indexedAt,
-					uri: notification.uri,
-					cid: notification.cid,
-				},
-			});
-		});
-	}
-
-	return returnData;
-}
-
-/**
  * Get unread notification count
  */
 export async function getUnreadCountOperation(
@@ -172,16 +181,20 @@ export async function getUnreadCountOperation(
  */
 export async function updateSeenNotificationsOperation(
 	agent: AtpAgent,
+	seenAt?: string,
 ): Promise<INodeExecutionData[]> {
+	const timestamp = seenAt || new Date().toISOString();
+	
 	await agent.app.bsky.notification.updateSeen({
-		seenAt: new Date().toISOString(),
+		seenAt: timestamp,
 	});
 
 	return [
 		{
 			json: {
 				success: true,
-				message: 'Notifications marked as seen',
+				seenAt: timestamp,
+				message: `Notifications marked as seen up to ${timestamp}`,
 			},
 		},
 	];

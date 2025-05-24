@@ -24,10 +24,6 @@ export const resourcesProperty: INodeProperties = {
 			value: 'graph',
 		},
 		{
-			name: 'Notification',
-			value: 'notifications',
-		},
-		{
 			name: 'Post',
 			value: 'post',
 		},

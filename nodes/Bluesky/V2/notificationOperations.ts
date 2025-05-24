@@ -20,62 +20,13 @@ export const notificationProperties: INodeProperties[] = [
 				action: 'Get unread notification count',
 			},
 			{
-				name: 'List Notifications',
-				value: 'listNotifications',
-				description: 'List notifications for the authenticated user',
-				action: 'List notifications',
-			},
-			{
 				name: 'Mark Notifications as Seen',
 				value: 'updateSeen',
 				description: 'Notify server that notifications have been seen',
 				action: 'Mark notifications as seen',
 			},
 		],
-		default: 'listNotifications',
-	},
-	{
-		displayName: 'Limit',
-		name: 'limit',
-		type: 'number',
-		typeOptions: {
-			minValue: 1,
-			maxValue: 100, // API max for listNotifications
-		},
-		default: 50,
-		description: 'Max number of notifications to return',
-		displayOptions: {
-			show: {
-				resource: ['notification'],
-				operation: ['listNotifications'],
-			},
-		},
-	},
-	{
-		displayName: 'Unread Only',
-		name: 'unreadOnly',
-		type: 'boolean',
-		default: true,
-		description: 'If true, only unread notifications will be returned. Note: Pagination is based on underlying API pages.',
-		displayOptions: {
-			show: {
-				resource: ['notification'],
-				operation: ['listNotifications'],
-			},
-		},
-	},
-	{
-		displayName: 'Mark Retrieved as Read',
-		name: 'markRetrievedAsRead',
-		type: 'boolean',
-		default: true,
-		description: 'Whether to mark retrieved notifications as read (if listing) or all notifications as read (if getting unread count/explicitly updating seen). Has no effect if "Unread Only" is true during the filtering phase but will apply after unread items are collected.',
-		displayOptions: {
-			show: {
-				resource: ['notification'],
-				operation: ['listNotifications', 'getUnreadCount', 'updateSeen'],
-			},
-		},
+		default: 'getUnreadCount',
 	},
 	{
 		displayName: 'Seen At (ISO Date String)',
@@ -85,7 +36,7 @@ export const notificationProperties: INodeProperties[] = [
 		description: 'Optional ISO 8601 date string. If provided for "Mark Notifications as Seen", marks notifications up to this time as read. If not, uses current time.',
 		displayOptions: {
 			show: {
-				resource: ['notification'],
+				resource: ['notification'], // Only for 'notification' resource
 				operation: ['updateSeen'],
 			},
 		},
@@ -98,7 +49,7 @@ export const notificationProperties: INodeProperties[] = [
 		description: 'Whether to only count priority notifications (mentions, quotes, replies)',
 		displayOptions: {
 			show: {
-				resource: ['notification'],
+				resource: ['notification'], // Only for 'notification' resource
 				operation: ['getUnreadCount'],
 			},
 		},
@@ -113,10 +64,9 @@ export async function listNotificationsOperation(
 	userRequestedLimit: number,
 	unreadOnly: boolean,
 	markRetrievedAsRead: boolean,
-	initialCursor?: string,
 ): Promise<INodeExecutionData[]> {
 	const notificationsToReturn: INodeExecutionData[] = [];
-	let currentApiCursor: string | undefined = initialCursor;
+	let currentApiCursor: string | undefined = undefined;
 	const API_PAGE_SIZE = 100; // Max notifications per API page
 	let lastRetrievedUnreadNotificationTimestamp: string | undefined = undefined;
 
@@ -124,13 +74,13 @@ export async function listNotificationsOperation(
 		let unreadNotificationsCollected = 0;
 
 		while (unreadNotificationsCollected < userRequestedLimit) {
-			const response = await agent.api.app.bsky.notification.listNotifications({
+			const response = await agent.app.bsky.notification.listNotifications({
 				limit: API_PAGE_SIZE,
 				cursor: currentApiCursor,
 				// Do NOT pass seenAt here to ensure notification.isRead is accurate for filtering
 			});
 
-			if (!response.data.notifications || response.data.notifications.length === 0) {
+			if (!response || !response.data || !response.data.notifications || response.data.notifications.length === 0) {
 				currentApiCursor = undefined; // No more notifications from API
 				break;
 			}
@@ -166,37 +116,56 @@ export async function listNotificationsOperation(
 		if (markRetrievedAsRead && lastRetrievedUnreadNotificationTimestamp) {
 			try {
 				// Mark as seen up to the timestamp of the most recent unread notification retrieved
-				await agent.api.app.bsky.notification.updateSeen({ seenAt: lastRetrievedUnreadNotificationTimestamp });
+				await agent.app.bsky.notification.updateSeen({ seenAt: lastRetrievedUnreadNotificationTimestamp });
 			} catch (e: any) {
 				// Log or handle error from updateSeen, but don't fail the whole operation
 				console.warn(`Failed to mark notifications as seen up to ${lastRetrievedUnreadNotificationTimestamp}: ${e.message}`);
 			}
 		}
 	} else { // Behavior for unreadOnly = false
-		const seenAt = markRetrievedAsRead ? new Date().toISOString() : undefined;
-		const response = await agent.api.app.bsky.notification.listNotifications({
-			limit: userRequestedLimit, // Use user's limit directly
-			cursor: initialCursor,
-			seenAt: seenAt, // Pass seenAt directly if not filtering for unread only
-		});
+		let notificationsCollected = 0;
 
-		if (response.data.notifications) {
-			response.data.notifications.forEach((notification) => {
-				// The 'isRead' field in the response will reflect the 'seenAt' if provided
-				notificationsToReturn.push({
-					json: { ...notification, reasonSubjectUri: notification.reasonSubject },
-				} as INodeExecutionData);
+		while (notificationsCollected < userRequestedLimit) {
+			const response = await agent.app.bsky.notification.listNotifications({
+				limit: Math.min(API_PAGE_SIZE, userRequestedLimit - notificationsCollected),
+				cursor: currentApiCursor,
+				// Note: seenAt is not supported by listNotifications endpoint
 			});
+
+			if (!response || !response.data || !response.data.notifications || response.data.notifications.length === 0) {
+				break; // No more notifications available
+			}
+
+			// Add all notifications from this page
+			response.data.notifications.forEach((notification) => {
+				if (notificationsCollected < userRequestedLimit) {
+					notificationsToReturn.push({
+						json: { ...notification, reasonSubjectUri: notification.reasonSubject },
+					} as INodeExecutionData);
+					notificationsCollected++;
+				}
+			});
+
+			currentApiCursor = response.data.cursor;
+			
+			// If we've collected enough or there's no more data, break
+			if (notificationsCollected >= userRequestedLimit || !currentApiCursor) {
+				break;
+			}
 		}
-		currentApiCursor = response.data.cursor;
+
+		// If user wants to mark retrieved notifications as read, do it separately
+		if (markRetrievedAsRead && notificationsToReturn.length > 0) {
+			try {
+				// Mark all notifications as seen using current timestamp
+				await agent.app.bsky.notification.updateSeen({ seenAt: new Date().toISOString() });
+			} catch (e: any) {
+				// Log or handle error from updateSeen, but don't fail the whole operation
+				console.warn(`Failed to mark notifications as seen: ${e.message}`);
+			}
+		}
 	}
 
-	// Add pagination item if a cursor exists for the next set of raw API data
-	if (currentApiCursor) {
-		notificationsToReturn.push({
-			json: { cursor: currentApiCursor, _pagination: true },
-		} as INodeExecutionData);
-	}
 	return notificationsToReturn;
 }
 
