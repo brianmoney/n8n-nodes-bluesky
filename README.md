@@ -4,32 +4,14 @@
 
 This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/n8n-nodes-bluesky) with enhanced functionality for the Bluesky social network.
 
-## Added Features
+## Key Features
 
-- **List All Followers Operation**: Added ability to automatically fetch all followers for a Bluesky user with pagination support
-  - Fetches followers via app.bsky.graph.getFollowers
-  - Automatically pages through all results using the cursor
-  - Configurable maximum limit for number of followers to retrieve
-  - Configurable page size for each API request
-- **List All Follows Operation**: Added ability to automatically fetch all accounts a user is following with pagination support
-  - Fetches follows via app.bsky.graph.getFollows
-  - Automatically pages through all results using the cursor
-  - Configurable maximum limit for number of follows to retrieve
-  - Configurable page size for each API request
-- **Search Operations**: Comprehensive search functionality for users and posts
-  - Search users by keywords with configurable limits
-  - Search posts with author filtering and result limits
-- **Media Posting**: Ability to attach images to posts (fixed issue with binary data handling)
-- **Thread Operations**: Enhanced thread management capabilities
-  - Get Post Thread Operation: Retrieve the full context of a post thread
-  - Reply to Posts: Create replies with proper thread structure
-  - Quote Posts: Quote existing posts in new posts
-  - Mute Thread Operation: Mute conversation threads
-- **Analytics & Engagement**: Comprehensive analytics and notification management
-  - Notification Management: List, count, and mark notifications as seen
-  - Post Interaction Analytics: Track likes, reposts, and replies with detailed metrics
-  - Engagement Automation: Perfect for building engagement bots and analytics dashboards
-  - Real-time Insights: Get unread counts and interaction summaries
+- **User Management**: Follow/follower operations with pagination, profile management, muting/blocking
+- **Advanced Posting**: Create posts with media attachments, replies, quotes, and website cards
+- **Feed Operations**: Retrieve author feeds with filtering, timelines, and thread contexts
+- **Search Capabilities**: Search users and posts with filtering options
+- **Analytics & Notifications**: Enhanced notification management with filtering and interaction tracking
+- **Thread Management**: Reply to posts, quote posts, and mute conversation threads
 
 ## Installation
 
@@ -39,171 +21,98 @@ npm install n8n-nodes-bluesky-enhanced
 
 In n8n community edition, you can install the nodes in the settings page by searching for `n8n-nodes-bluesky-enhanced`.
 
-## Features
+## Supported Operations
 
-All original features, plus:
+### User Operations
+- **Block User** - Block users to prevent interaction
+- **Get Profile** - Get detailed profile information for any user
+- **List All Followers** - Fetch all followers with automatic pagination
+- **List All Follows** - Fetch all follows with automatic pagination  
+- **Mute User** - Mute users to hide their content from feeds
+- **Un-mute User** - Remove mute status from users
 
-- User
-	- Block User
-	- Get Profile
-	- **List All Followers** (New)
-	- **List All Follows** (New)
-	- Mute User
-	- Un-mute User
-- Feed
-	- Get Author Feed
-	- Get Timeline of current user
-	- **Get Post Thread** (New) - Retrieve the full context of a post thread.
-- Post
-	- Create Post (Now supports **attaching images**)
-	- Like
-	- Unlike
-	- Repost
-	- Delete Repost
-	- **Reply to a Post** (New) - Reply to existing posts with proper thread structure
-	- **Quote a Post** (New) - Quote existing posts in new posts
-- Search
-	- **Search Users** (New)
-	- **Search Posts** (New)
-- Graph
-	- **Mute Thread** (New) - Mute a conversation thread.
-	- **Mute Conversation** - Mute conversation notifications
-	- **Unmute Conversation** - Unmute conversation notifications
-	- **Update Read Status** - Mark messages as read
-	- **Delete Message** - Remove messages from conversations (self only)
-- **Analytics** (New)
-	- **List Notifications** - Get notifications for the authenticated user
-	- **Get Unread Notification Count** - Get count of unread notifications
-	- **Update Seen Notifications** - Mark notifications as seen
-	- **Get Post Interactions** - Analyze post engagement (likes, reposts, replies)
+### Post Operations
+- **Create Post** - Create text posts with optional media attachments or website cards
+- **Like/Unlike** - Like and unlike posts
+- **Repost/Delete Repost** - Repost content and manage reposts
+- **Reply to Post** - Reply to existing posts with proper thread structure
+- **Quote Post** - Quote existing posts in new posts
+- **Delete Post** - Remove your own posts
 
-## Follower Pagination Configuration
+### Feed Operations
+- **Get Author Feed** - Retrieve posts from specific users with filtering options
+- **Get Timeline** - Get your personalized timeline
+- **Get Post Thread** - Retrieve full conversation threads with context
 
-When using the "List All Followers" operation, you can configure:
+### Search Operations
+- **Search Users** - Find users by keywords with configurable limits
+- **Search Posts** - Search posts with optional author filtering
 
-- **Handle**: The Bluesky handle (e.g., username.bsky.social) of the account whose followers you want to fetch
-- **Max Results**: Maximum number of followers to fetch (default: 1000)
-- **Page Size**: Number of followers per API request (default: 100, max: 100)
+### Analytics Operations
+- **List Notifications** - Get notifications with enhanced filtering options
+- **Get Unread Count** - Monitor unread notification counts
+- **Update Seen Notifications** - Mark notifications as read
+- **Get Post Interactions** - Analyze post engagement (likes, reposts, replies)
 
-## Follows Pagination Configuration
+### Graph Operations  
+- **Mute Thread** - Mute conversation threads to stop notifications
 
-When using the "List All Follows" operation, you can configure:
+## Configuration Examples
 
-- **Handle**: The Bluesky handle (e.g., username.bsky.social) of the account whose follows you want to fetch
-- **Max Results**: Maximum number of follows to fetch (default: 1000)
-- **Page Size**: Number of follows per API request (default: 100, max: 100)
+### Enhanced Notification Management
 
-## Search Configuration
+The Analytics resource provides comprehensive notification management with advanced filtering:
 
-### Search Users
-When using the "Search Users" operation, you can configure:
-- **Search Query**: Keywords to search for users
-- **Limit**: Maximum number of results to return (default: 25, max: 100)
+**List Notifications**
+- **Limit**: Max number of results to return
+- **Unread Only**: Whether to return only unread notifications (default: true)
+- **Mark Retrieved as Read**: Whether to automatically mark retrieved notifications as read (default: true)
 
-### Search Posts
-When using the "Search Posts" operation, you can configure:
-- **Search Query**: Keywords to search for posts
-- **Limit**: Maximum number of posts to fetch (default: 25, max: 100)
-- **Author Handle**: Optional filter to only include posts by a specific author
+This enhanced operation includes automatic pagination and intelligent filtering - when "Unread Only" is enabled, it automatically handles pagination to find unread notifications across multiple API pages.
 
-## Media Posting Configuration (New)
+**Get Post Interactions**
+Analyze engagement metrics for any post:
+- **Post URI**: AT URI of the post to analyze
+- **Interaction Types**: Select likes, reposts, and/or replies
+- **Interaction Limit**: Number of each interaction type to retrieve (1-100)
 
-When using the "Create Post" operation, you can now attach images:
+Returns structured data with individual interactions plus automatic analytics summaries.
 
-- **Include Media**: A boolean toggle. If checked, allows you to add media items. If unchecked, you can add a website card (as before).
-- **Media Items**: A collection where you can add one or more images.
-  - **Binary Property Name**: The name of the binary property in your n8n workflow that contains the image data (e.g., `imageData`).
-  - **Alt Text**: Descriptive alternative text for the image, for accessibility.
+### Advanced Feed Filtering
 
-*Note: If "Include Media" is checked, the "Website Card" options will be hidden and ignored.*
+**Get Author Feed** now supports content-type filtering:
+- **Posts with Replies**: All posts including replies (default)
+- **Posts without Replies**: Only top-level posts
+- **Posts with Media**: Only posts with media attachments
+- **Posts and Author Threads**: Posts and threads by the author
+- **Posts with Video**: Only posts containing video
 
-## Thread Management Configuration (New)
+Filters are applied at the API level for optimal performance.
 
-### Get Post Thread
-This operation is found under the "Feed" resource.
-- **Post URI**: The AT URI of the root post of the thread you want to retrieve (e.g., `at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/yyyyyyyyy`).
-- **Depth**: (Optional) How many levels of parent replies to fetch. Default is 6.
-- **Parent Height**: (Optional) How many levels of child replies (replies to the main post) to fetch. Default is 80.
+### User Management with Pagination
 
-### Mute Thread
-This operation is found under the new "Graph" resource.
-- **Thread URI**: The AT URI of the root post of the thread you want to mute.
+**List All Followers/Follows**
+- **Handle**: Bluesky handle (e.g., username.bsky.social)
+- **Max Results**: Maximum number to fetch (default: 1000)
+- **Page Size**: Results per API request (default: 100, max: 100)
 
-## Feed Filtering Configuration (New)
+Automatic pagination handles large follower/following lists efficiently.
 
-### Get Author Feed with Filters
-Enhanced filtering capabilities for the "Get Author Feed" operation:
-- **Actor**: The DID or handle of the author whose posts you want to fetch
-- **Limit**: Maximum number of posts to return (default: 50)
-- **Filter**: Choose the type of posts to retrieve:
-  - **Posts with Replies**: All posts, including replies (default)
-  - **Posts without Replies**: Only top-level posts, excludes replies
-  - **Posts with Media**: Only posts containing media attachments (images, videos, etc.)
-  - **Posts and Author Threads**: Posts and threads authored by the user
-  - **Posts with Video**: Only posts containing video content
+### Media Posting
 
-These filters are applied at the API level for optimal performance, allowing you to get exactly the content you need without post-processing.
+**Create Post with Media**
+- **Include Media**: Enable media attachment mode
+- **Media Items**: Collection of up to 4 images
+  - **Binary Property**: Name of n8n binary property containing image data
+  - **Alt Text**: Accessibility description for images
 
-Perfect for:
-- Content curation and analysis
-- Media-focused workflows
-- Thread and conversation tracking
-- Engagement analysis by content type
-
-## Analytics Configuration (New)
-
-The Analytics resource provides powerful engagement tracking and notification management capabilities for your Bluesky account.
-
-### List Notifications
-Get a list of notifications for the authenticated user:
-- **Limit**: Maximum number of notifications to retrieve (default: 50)
-
-Returns detailed notification data including:
-- Notification reason (like, repost, mention, reply, etc.)
-- Author information
-- Associated post/record data
-- Read status and timestamps
-
-### Get Unread Notification Count
-Get the current count of unread notifications for quick engagement monitoring:
-- No configuration required
-- Returns a simple count value
-
-Perfect for dashboard widgets or automated engagement tracking workflows.
-
-### Update Seen Notifications
-Mark all notifications as seen up to the current timestamp:
-- No configuration required
-- Automatically uses current timestamp
-- Returns success confirmation
-
-Useful for automation workflows that process notifications and want to mark them as handled.
-
-### Get Post Interactions
-Comprehensive analytics for post engagement and performance tracking:
-- **Post URI**: The AT URI of the post to analyze (e.g., `at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/yyyyyyyyy`)
-- **Interactions to Retrieve**: Multi-select options for:
-  - **Likes**: Get users who liked the post with timestamps
-  - **Reposts**: Get users who reposted with their profile information
-  - **Replies**: Get reply posts with author details and content
-- **Interaction Limit**: Maximum number of each interaction type to return (1-100, default: 50)
-
-Returns structured analytics data including:
-- Individual interaction details (users, timestamps, content)
-- Automatic analytics summary with aggregated counts
-- Configurable data scope for performance optimization
-
-Perfect for:
-- Content performance analysis
-- Engagement rate tracking
-- Audience analysis and insights
-- Automated engagement responses
+When media is included, website card options are automatically disabled.
 
 ## Testing & Quality
 
 This package maintains high code quality with comprehensive test coverage:
 
-- **55/55 Tests Passing** ✅ - 100% test pass rate
+- **57/57 Tests Passing** ✅ - 100% test pass rate
 - **Full Integration Testing** - All operations tested with proper mocking
 - **TypeScript Support** - Fully typed with proper error handling
 - **Jest Test Suite** - Robust testing framework with detailed coverage
@@ -213,6 +122,17 @@ Run tests locally:
 ```bash
 npm test
 ```
+
+## Use Cases
+
+This enhanced Bluesky node is perfect for:
+
+- **Social Media Management**: Automated posting, content scheduling, engagement tracking
+- **Community Building**: Follower management, notification handling, interaction monitoring  
+- **Content Analytics**: Post performance tracking, engagement analysis, audience insights
+- **Brand Monitoring**: Search functionality for mentions and relevant content
+- **Automated Responses**: Reply and quote operations for customer service or engagement
+- **Data Collection**: Comprehensive user and content data extraction with pagination
 
 ## Changelog
 

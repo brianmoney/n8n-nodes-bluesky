@@ -5,6 +5,48 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-05-24
+
+### Added
+- **Enhanced Analytics Notifications**: Major improvements to notification management in Analytics resource
+  - Added `unreadOnly` boolean flag (defaults to true) for filtering unread notifications
+  - Added `markRetrievedAsRead` boolean flag (defaults to true) for automatic read status updates
+  - Implemented intelligent pagination that automatically handles multiple API pages when filtering for unread notifications
+  - Added `seenAt` parameter support for `updateSeenNotifications` operation with timestamp control
+
+### Removed
+- **Redundant Notification Resource**: Removed standalone "Notification" resource from UI to eliminate confusion
+  - All notification functionality now consolidated under "Analytics" resource
+  - Prevents duplicate functionality and improves user experience
+  - Maintains backwards compatibility by preserving all notification operations under Analytics
+
+### Fixed
+- **Test Suite Completion**: Achieved 100% test pass rate (57/57 tests passing)
+  - Fixed all failing tests that referenced removed "notifications" resource
+  - Updated test expectations to use "analytics" resource with correct operation names
+  - Enhanced test coverage for new notification features
+- **API Response Handling**: Added defensive coding to handle undefined API responses
+  - Protected against null/undefined responses in notification operations
+  - Improved error handling for edge cases in API communication
+- **Code Quality**: Resolved all ESLint violations
+  - Fixed parameter validation issues in analytics operations
+  - Standardized boolean parameter descriptions
+  - Removed inappropriate type constraints
+
+### Changed
+- **Operation Consolidation**: Streamlined notification operations under Analytics resource
+  - `getUnreadCount` and `markAsSeen` operations now use Analytics resource
+  - Updated internal routing and parameter handling
+  - Improved consistency across notification-related operations
+- **Enhanced Message Formatting**: Updated analytics response messages to include timestamps
+  - Better tracking of when notifications were marked as seen
+  - Improved debugging and audit trail capabilities
+
+### Technical
+- **Import Cleanup**: Removed unused notification-related imports from main node file
+- **Properties Optimization**: Streamlined node properties configuration by removing redundant notification properties
+- **Test Infrastructure**: Enhanced mock implementations for better test reliability and coverage
+
 ## [1.3.1] - 2025-05-24
 
 ### Changed

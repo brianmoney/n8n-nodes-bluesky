@@ -39,6 +39,24 @@ const mockUnmuteConvoInstance = jest.fn();
 const mockUpdateReadInstance = jest.fn();
 const mockDeleteMessageForSelfInstance = jest.fn();
 
+// Mock open-graph-scraper
+jest.mock('open-graph-scraper', () => ({
+	__esModule: true,
+	default: jest.fn().mockResolvedValue({
+		result: {
+			ogTitle: 'Example Title',
+			ogDescription: 'Example Description',
+			ogImage: [{ url: 'http://example.com/image.png' }]
+		}
+	}),
+}));
+
+// Mock global fetch
+global.fetch = jest.fn().mockResolvedValue({
+	ok: true,
+	arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)),
+}) as jest.Mock;
+
 jest.mock('@atproto/api', () => {
 	const actualAtprotoApi = jest.requireActual('@atproto/api');
 	return {
@@ -219,14 +237,6 @@ describe('BlueskyV2', () => {
 			});
 			const mockPostApiResponse = { uri: 'at://did:plc:test/app.bsky.feed.post/123', cid: 'bafy...' };
 			mockPostInstance.mockResolvedValue(mockPostApiResponse);
-			// Mock for website card OG fetch if fetchOpenGraphTags is true
-			const mockOgsInstance = jest.fn().mockResolvedValue({ result: { ogTitle: 'Example Title', ogDescription: 'Example Description', ogImage: [{ url: 'http://example.com/image.png' }] } });
-			jest.mock('open-graph-scraper', () => ({ __esModule: true, default: mockOgsInstance }));
-			// Mock for fetching the image data for OG
-			global.fetch = jest.fn().mockResolvedValue({
-				ok: true,
-				arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)), // Mock image data
-			}) as jest.Mock;
 			// Mock for uploadBlob for OG image
 			mockUploadBlobInstance.mockResolvedValue({ data: { blob: { $type: 'blob', ref: { $link: 'link-to-og-image-blob' }, mimeType: 'image/png', size: 123 } } });
 
