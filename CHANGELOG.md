@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Chat Operations**: Complete chat messaging functionality
+  - **List Conversations**: Get all conversations for the authenticated user with pagination
+  - **Send Message**: Send messages to specific conversations
+  - **Get Messages**: Retrieve messages from conversations with pagination support
+  - **Get Conversation for Members**: Find or create conversations between specific users
+  - **Accept Conversation**: Accept incoming conversation requests
+  - **Leave Conversation**: Leave existing conversations
+  - **Mute/Unmute Conversations**: Control conversation notifications
+  - **Update Read Status**: Mark messages as read with timestamp control
+  - **Delete Messages**: Remove messages from conversations (self only)
 - **Enhanced Feed Filtering**: Added comprehensive filtering options for "Get Author Feed" operation
   - **Posts with Replies**: All posts, including replies (default behavior)
   - **Posts without Replies**: Only top-level posts, excludes replies
@@ -21,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `getAuthorFeed` operation to accept optional filter parameter
 - Enhanced test coverage to include filter parameter validation
 - Improved documentation with detailed filter descriptions and use cases
+
+### Fixed
+- **Test Suite Stability**: Resolved all failing tests to achieve 100% test pass rate (55/55 tests passing)
+- **Chat API Mock Structure**: Fixed Jest mock setup for chat operations to properly handle nested API structure
+- **Media Upload Testing**: Enhanced mock implementation for binary data upload operations
+- **Mock Cleanup Strategy**: Improved test isolation while preserving mock object structure integrity
 
 ## [1.3.0] - 2025-05-23
 

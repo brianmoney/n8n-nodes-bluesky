@@ -26,6 +26,19 @@ const mockListNotificationsInstance = jest.fn(); // Added for notifications
 const mockGetUnreadCountInstance = jest.fn(); // Added for notification count
 const mockUpdateSeenInstance = jest.fn(); // Added for marking notifications as seen
 
+// Chat operation mocks
+const mockListConvosInstance = jest.fn();
+const mockGetConvoInstance = jest.fn();
+const mockGetMessagesInstance = jest.fn();
+const mockSendMessageInstance = jest.fn();
+const mockGetConvoForMembersInstance = jest.fn();
+const mockAcceptConvoInstance = jest.fn();
+const mockLeaveConvoInstance = jest.fn();
+const mockMuteConvoInstance = jest.fn();
+const mockUnmuteConvoInstance = jest.fn();
+const mockUpdateReadInstance = jest.fn();
+const mockDeleteMessageForSelfInstance = jest.fn();
+
 jest.mock('@atproto/api', () => {
 	const actualAtprotoApi = jest.requireActual('@atproto/api');
 	return {
@@ -70,6 +83,26 @@ jest.mock('@atproto/api', () => {
 					},
 				},
 			},
+			// API structure for chat operations
+			api: {
+				chat: {
+					bsky: {
+						convo: {
+							listConvos: mockListConvosInstance,
+							getConvo: mockGetConvoInstance,
+							getMessages: mockGetMessagesInstance,
+							sendMessage: mockSendMessageInstance,
+							getConvoForMembers: mockGetConvoForMembersInstance,
+							acceptConvo: mockAcceptConvoInstance,
+							leaveConvo: mockLeaveConvoInstance,
+							muteConvo: mockMuteConvoInstance,
+							unmuteConvo: mockUnmuteConvoInstance,
+							updateRead: mockUpdateReadInstance,
+							deleteMessageForSelf: mockDeleteMessageForSelfInstance,
+						},
+					},
+				},
+			},
 		})),
 	};
 });
@@ -88,27 +121,65 @@ describe('BlueskyV2', () => {
 	let executeFunctions: IExecuteFunctions;
 
 	beforeEach(() => {
-		// Reset all mocks before each test
-		mockLoginInstance.mockReset().mockResolvedValue({ data: { did: 'test-did' } as ComAtprotoServerCreateSession.OutputSchema });
-		mockPostInstance.mockReset();
-		mockDeletePostInstance.mockReset();
-		mockLikeInstance.mockReset();
-		mockDeleteLikeInstance.mockReset();
-		mockRepostInstance.mockReset();
-		mockDeleteRepostInstance.mockReset();
-		mockGetAuthorFeedInstance.mockReset();
-		mockGetTimelineInstance.mockReset();
-		mockGetProfileInstance.mockReset();
-		mockMuteInstance.mockReset();
-		mockUnmuteInstance.mockReset();
-		mockGraphBlockCreateInstance.mockReset();
-		mockGraphBlockDeleteInstance.mockReset();
-		mockUploadBlobInstance.mockReset(); // Reset new mock
-		mockGetPostThreadInstance.mockReset(); // Reset for getPostThread
-		mockMuteThreadInstance.mockReset(); // Reset for muteThread
-		mockListNotificationsInstance.mockReset(); // Reset for notifications
-		mockGetUnreadCountInstance.mockReset(); // Reset for notification count
-		mockUpdateSeenInstance.mockReset(); // Reset for marking notifications as seen
+		// Clear call history only, don't touch implementations
+		mockLoginInstance.mockClear();
+		mockLoginInstance.mockImplementation(function(this: any, credentials: any) {
+			// Set up the api property on the agent instance after login
+			this.api = {
+				chat: {
+					bsky: {
+						convo: {
+							listConvos: mockListConvosInstance,
+							getConvo: mockGetConvoInstance,
+							getMessages: mockGetMessagesInstance,
+							sendMessage: mockSendMessageInstance,
+							getConvoForMembers: mockGetConvoForMembersInstance,
+							acceptConvo: mockAcceptConvoInstance,
+							leaveConvo: mockLeaveConvoInstance,
+							muteConvo: mockMuteConvoInstance,
+							unmuteConvo: mockUnmuteConvoInstance,
+							updateRead: mockUpdateReadInstance,
+							deleteMessageForSelf: mockDeleteMessageForSelfInstance,
+						},
+					},
+				},
+			};
+			return Promise.resolve({ data: { did: 'test-did' } as ComAtprotoServerCreateSession.OutputSchema });
+		});
+		
+		// Clear call history for all operation mocks
+		mockPostInstance.mockClear();
+		mockDeletePostInstance.mockClear();
+		mockLikeInstance.mockClear();
+		mockDeleteLikeInstance.mockClear();
+		mockRepostInstance.mockClear();
+		mockDeleteRepostInstance.mockClear();
+		mockGetAuthorFeedInstance.mockClear();
+		mockGetTimelineInstance.mockClear();
+		mockGetProfileInstance.mockClear();
+		mockMuteInstance.mockClear();
+		mockUnmuteInstance.mockClear();
+		mockGraphBlockCreateInstance.mockClear();
+		mockGraphBlockDeleteInstance.mockClear();
+		mockUploadBlobInstance.mockClear();
+		mockGetPostThreadInstance.mockClear();
+		mockMuteThreadInstance.mockClear();
+		mockListNotificationsInstance.mockClear();
+		mockGetUnreadCountInstance.mockClear();
+		mockUpdateSeenInstance.mockClear();
+
+		// Clear chat operation mocks (call history only)
+		mockListConvosInstance.mockClear();
+		mockGetConvoInstance.mockClear();
+		mockGetMessagesInstance.mockClear();
+		mockSendMessageInstance.mockClear();
+		mockGetConvoForMembersInstance.mockClear();
+		mockAcceptConvoInstance.mockClear();
+		mockLeaveConvoInstance.mockClear();
+		mockMuteConvoInstance.mockClear();
+		mockUnmuteConvoInstance.mockClear();
+		mockUpdateReadInstance.mockClear();
+		mockDeleteMessageForSelfInstance.mockClear();
 
 
 		node = new BlueskyV2(mockBaseDescription);
@@ -120,14 +191,16 @@ describe('BlueskyV2', () => {
 			}),
 			getNodeParameter: jest.fn(),
 			getInputData: jest.fn().mockReturnValue([{ json: {} }]),
-			getHelpers: jest.fn().mockReturnValue({
+			getNode: jest.fn().mockReturnValue({ name: 'Test Node' }),
+			helpers: {
 				getBinaryDataBuffer: jest.fn(),
-			}),
+			},
 		} as unknown as IExecuteFunctions;
 	});
 
 	afterEach(() => {
-		jest.clearAllMocks();
+		// Don't clear all mocks to preserve the nested structure
+		// jest.clearAllMocks(); // Commented out to preserve mock object structure
 	});
 
 	it('should be defined', () => {
@@ -167,15 +240,29 @@ describe('BlueskyV2', () => {
 		});
 
 		it('should create a post with media successfully', async () => {
+			// Setup specific mocks for this test (overriding beforeEach defaults)
+			(executeFunctions.getInputData as jest.Mock).mockReturnValue([
+				{ 
+					json: {}, 
+					binary: { 
+						imageData: { 
+							mimeType: 'image/png', 
+							fileName: 'test.png', 
+							fileSize: 12345 
+						} 
+					} 
+				}
+			]);
+
 			(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
 				if (name === 'resource') return 'post';
 				if (name === 'operation') return 'post';
 				if (name === 'postText') return 'This is a test post with an image';
 				if (name === 'langs') return ['en'];
 				if (name === 'includeMedia') return true;
-				if (name === 'mediaItems') return [
-					{ media: { binaryPropertyName: 'imageData', altText: 'A test image' } },
-				];
+				if (name === 'mediaItems') return {
+					media: [{ binaryPropertyName: 'imageData', altText: 'A test image' }]
+				};
 				if (name === 'websiteCard') return {}; // Should be ignored if includeMedia is true
 				return defaultValue;
 			});
@@ -668,15 +755,17 @@ describe('BlueskyV2', () => {
 
 			// Mock getPostThread response with parent and root for thread structure
 			mockGetPostThreadInstance.mockResolvedValue({
-				thread: {
-					post: {
-						uri: 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey',
-						cid: 'bafy-original-post-cid'
-					},
-					parent: {
-						post: { 
-							uri: 'at://did:plc:original-author/app.bsky.feed.post/parentRkey',
-							cid: 'bafy-parent-cid' 
+				data: {
+					thread: {
+						post: {
+							uri: 'at://did:plc:original-author/app.bsky.feed.post/originalPostRkey',
+							cid: 'bafy-original-post-cid'
+						},
+						parent: {
+							post: { 
+								uri: 'at://did:plc:original-author/app.bsky.feed.post/parentRkey',
+								cid: 'bafy-parent-cid' 
+							}
 						}
 					}
 				}
@@ -1116,6 +1205,144 @@ describe('BlueskyV2', () => {
 				}));
 
 				await expect(node.execute.call(executeFunctions)).rejects.toThrow('Failed to get likes');
+			});
+		});
+	});
+
+	describe('chat operations', () => {
+		describe('listConvos operation', () => {
+			it('should list conversations successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'chat';
+					if (name === 'operation') return 'listConvos';
+					if (name === 'limit') return 50;
+					if (name === 'cursor') return '';
+					if (name === 'readState') return '';
+					if (name === 'status') return '';
+					return null;
+				});
+
+				const mockConvosResponse = {
+					data: {
+						convos: [
+							{ id: 'convo1', lastMessage: { text: 'Hello' } },
+							{ id: 'convo2', lastMessage: { text: 'Hi there' } }
+						],
+						cursor: 'next_cursor'
+					}
+				};
+				mockListConvosInstance.mockResolvedValue(mockConvosResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(3); // 2 conversations + 1 pagination item
+				expect(result[0][0].json.id).toBe('convo1');
+				expect(result[0][1].json.id).toBe('convo2');
+				expect(result[0][2].json.cursor).toBe('next_cursor');
+			});
+		});
+
+		describe('sendMessage operation', () => {
+			it('should send a message successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'chat';
+					if (name === 'operation') return 'sendMessage';
+					if (name === 'convoId') return 'convo123';
+					if (name === 'messageText') return 'Hello, this is a test message';
+					return null;
+				});
+
+				const mockMessageResponse = {
+					data: {
+						id: 'msg123',
+						text: 'Hello, this is a test message',
+						sentAt: '2024-01-01T12:00:00Z'
+					}
+				};
+				mockSendMessageInstance.mockResolvedValue(mockMessageResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.id).toBe('msg123');
+				expect(result[0][0].json.text).toBe('Hello, this is a test message');
+			});
+		});
+
+		describe('getMessages operation', () => {
+			it('should get messages from a conversation successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'chat';
+					if (name === 'operation') return 'getMessages';
+					if (name === 'convoId') return 'convo123';
+					if (name === 'limit') return 50;
+					if (name === 'cursor') return '';
+					return null;
+				});
+
+				const mockMessagesResponse = {
+					data: {
+						messages: [
+							{ id: 'msg1', text: 'First message' },
+							{ id: 'msg2', text: 'Second message' }
+						],
+						cursor: 'messages_cursor'
+					}
+				};
+				mockGetMessagesInstance.mockResolvedValue(mockMessagesResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(3); // 2 messages + 1 pagination item
+				expect(result[0][0].json.id).toBe('msg1');
+				expect(result[0][1].json.id).toBe('msg2');
+				expect(result[0][2].json.cursor).toBe('messages_cursor');
+			});
+		});
+
+		describe('getConvoForMembers operation', () => {
+			it('should get conversation for members successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'chat';
+					if (name === 'operation') return 'getConvoForMembers';
+					if (name === 'members') return 'did:plc:user1,did:plc:user2';
+					return null;
+				});
+
+				const mockConvoResponse = {
+					data: {
+						convo: {
+							id: 'new_convo123',
+							members: ['did:plc:user1', 'did:plc:user2']
+						}
+					}
+				};
+				mockGetConvoForMembersInstance.mockResolvedValue(mockConvoResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0].json.id).toBe('new_convo123');
+				expect(result[0][0].json.members).toEqual(['did:plc:user1', 'did:plc:user2']);
+			});
+		});
+
+		describe('acceptConvo operation', () => {
+			it('should accept a conversation successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'chat';
+					if (name === 'operation') return 'acceptConvo';
+					if (name === 'convoId') return 'convo123';
+					return null;
+				});
+
+				const mockAcceptResponse = {
+					data: {
+						status: 'accepted',
+						convoId: 'convo123'
+					}
+				};
+				mockAcceptConvoInstance.mockResolvedValue(mockAcceptResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+				expect(result[0]).toHaveLength(1);
+				expect((result[0][0].json as any).status).toBe('accepted');
 			});
 		});
 	});

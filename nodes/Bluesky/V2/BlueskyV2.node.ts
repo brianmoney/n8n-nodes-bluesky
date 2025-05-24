@@ -50,6 +50,20 @@ import {
 	getPostInteractionsOperation,
 	analyticsProperties
 } from './analyticsOperations';
+import {
+	listConversationsOperation,
+	getConversationOperation,
+	getMessagesOperation,
+	sendMessageOperation,
+	getConvoForMembersOperation,
+	acceptConversationOperation,
+	leaveConversationOperation,
+	muteConversationOperation,
+	unmuteConversationOperation,
+	updateReadStatusOperation,
+	deleteMessageOperation,
+	chatProperties
+} from './chatOperations';
 
 export class BlueskyV2 implements INodeType {
 	description: INodeTypeDescription;
@@ -69,7 +83,7 @@ export class BlueskyV2 implements INodeType {
 					required: true,
 				},
 			],
-			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties, ...notificationProperties, ...analyticsProperties],
+			properties: [resourcesProperty, ...userProperties, ...postProperties, ...feedProperties, ...searchProperties, ...graphProperties, ...notificationProperties, ...analyticsProperties, ...chatProperties],
 		};
 	}
 
@@ -229,6 +243,114 @@ export class BlueskyV2 implements INodeType {
 						);
 				}
 				continue; // Skip the rest of the loop for analytics operations
+			}
+
+			if (resource === 'chat') {
+				// Handle chat operations
+				switch (operation) {
+					case 'listConvos':
+						const listLimit = this.getNodeParameter('limit', i, 50) as number;
+						const listCursor = this.getNodeParameter('cursor', i, '') as string;
+						const readState = this.getNodeParameter('readState', i, '') as string;
+						const status = this.getNodeParameter('status', i, '') as string;
+						
+						const conversationsData = await listConversationsOperation(
+							agent,
+							listLimit,
+							listCursor || undefined,
+							readState || undefined,
+							status || undefined
+						);
+						returnData.push(...conversationsData);
+						break;
+					
+					case 'getConvo':
+						const getConvoId = this.getNodeParameter('convoId', i) as string;
+						const conversationData = await getConversationOperation(agent, getConvoId);
+						returnData.push(...conversationData);
+						break;
+					
+					case 'getMessages':
+						const messagesConvoId = this.getNodeParameter('convoId', i) as string;
+						const messagesLimit = this.getNodeParameter('limit', i, 50) as number;
+						const messagesCursor = this.getNodeParameter('cursor', i, '') as string;
+						
+						const messagesData = await getMessagesOperation(
+							agent,
+							messagesConvoId,
+							messagesLimit,
+							messagesCursor || undefined
+						);
+						returnData.push(...messagesData);
+						break;
+					
+					case 'sendMessage':
+						const sendConvoId = this.getNodeParameter('convoId', i) as string;
+						const messageText = this.getNodeParameter('messageText', i) as string;
+						
+						const sentMessageData = await sendMessageOperation(agent, sendConvoId, messageText);
+						returnData.push(...sentMessageData);
+						break;
+					
+					case 'getConvoForMembers':
+						const membersStr = this.getNodeParameter('members', i) as string;
+						const members = membersStr.split(',').map(m => m.trim()).filter(m => m);
+						
+						const convoForMembersData = await getConvoForMembersOperation(agent, members);
+						returnData.push(...convoForMembersData);
+						break;
+					
+					case 'acceptConvo':
+						const acceptConvoId = this.getNodeParameter('convoId', i) as string;
+						const acceptedConvoData = await acceptConversationOperation(agent, acceptConvoId);
+						returnData.push(...acceptedConvoData);
+						break;
+					
+					case 'leaveConvo':
+						const leaveConvoId = this.getNodeParameter('convoId', i) as string;
+						const leftConvoData = await leaveConversationOperation(agent, leaveConvoId);
+						returnData.push(...leftConvoData);
+						break;
+					
+					case 'muteConvo':
+						const muteConvoId = this.getNodeParameter('convoId', i) as string;
+						const mutedConvoData = await muteConversationOperation(agent, muteConvoId);
+						returnData.push(...mutedConvoData);
+						break;
+					
+					case 'unmuteConvo':
+						const unmuteConvoId = this.getNodeParameter('convoId', i) as string;
+						const unmutedConvoData = await unmuteConversationOperation(agent, unmuteConvoId);
+						returnData.push(...unmutedConvoData);
+						break;
+					
+					case 'updateRead':
+						const updateReadConvoId = this.getNodeParameter('convoId', i) as string;
+						const updateReadMessageId = this.getNodeParameter('messageId', i, '') as string;
+						
+						const updatedReadData = await updateReadStatusOperation(
+							agent,
+							updateReadConvoId,
+							updateReadMessageId || undefined
+						);
+						returnData.push(...updatedReadData);
+						break;
+					
+					case 'deleteMessage':
+						const deleteConvoId = this.getNodeParameter('convoId', i) as string;
+						const deleteMessageId = this.getNodeParameter('messageId', i) as string;
+						
+						const deletedMessageData = await deleteMessageOperation(agent, deleteConvoId, deleteMessageId);
+						returnData.push(...deletedMessageData);
+						break;
+					
+					default:
+						throw new NodeOperationError(
+							this.getNode(),
+							`The operation "${operation}" is not supported for resource "${resource}"!`,
+						);
+				}
+				continue; // Skip the rest of the loop for chat operations
 			}
 
 			// Handle other resources' operations

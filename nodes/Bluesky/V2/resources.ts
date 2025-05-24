@@ -11,6 +11,10 @@ export const resourcesProperty: INodeProperties = {
 			value: 'analytics',
 		},
 		{
+			name: 'Chat',
+			value: 'chat',
+		},
+		{
 			name: 'Feed',
 			value: 'feed',
 		},
