@@ -11,6 +11,9 @@ importers:
       '@atproto/api':
         specifier: ^0.15.8
         version: 0.15.8
+      '@atproto/syntax':
+        specifier: ^0.4.0
+        version: 0.4.0
       n8n-workflow:
         specifier: '*'
         version: 1.70.0

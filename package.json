@@ -20,7 +20,7 @@
   "homepage": "https://github.com/brianmoney/n8n-nodes-bluesky#readme",
   "author": {
     "name": "Brian",
-    "email": "brian@example.com"
+    "email": "brian@aspereo.com"
   },
   "repository": {
     "type": "git",
@@ -44,8 +44,6 @@
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
     "lintfix": "eslint nodes credentials package.json --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
     "prepublishOnly": "pnpm build && pnpm lint -c .eslintrc.prepublish.js nodes credentials package.json"
   },
   "files": [
@@ -78,6 +76,7 @@
   },
   "dependencies": {
     "@atproto/api": "^0.15.8",
+    "@atproto/syntax": "^0.4.0",
     "open-graph-scraper": "^6.8.2"
   }
 }

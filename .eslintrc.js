@@ -18,7 +18,7 @@ module.exports = {
 		extraFileExtensions: ['.json'],
 	},
 
-	// ignorePatterns: ['.eslintrc.js', '**/*.js', '**/node_modules/**', '**/dist/**'], // Commented out for now
+	ignorePatterns: ['.eslintrc.js', '**/*.js', '**/node_modules/**', '**/dist/**', '**/BlueskyTestNode.node.ts'],
 
 	overrides: [
 		{

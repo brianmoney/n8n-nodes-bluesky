@@ -24,6 +24,10 @@ export const resourcesProperty: INodeProperties = {
 			value: 'graph',
 		},
 		{
+			name: 'List',
+			value: 'list',
+		},
+		{
 			name: 'Post',
 			value: 'post',
 		},

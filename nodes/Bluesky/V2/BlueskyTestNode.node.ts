@@ -26,6 +26,16 @@ const mockListNotificationsInstance = jest.fn(); // Added for notifications
 const mockGetUnreadCountInstance = jest.fn(); // Added for notification count
 const mockUpdateSeenInstance = jest.fn(); // Added for marking notifications as seen
 
+// List operation mocks
+const mockGraphListCreateInstance = jest.fn();
+const mockGraphListPutInstance = jest.fn();
+const mockGraphListDeleteInstance = jest.fn();
+const mockGraphListGetInstance = jest.fn();
+const mockGetListsInstance = jest.fn();
+const mockGetListFeedInstance = jest.fn();
+const mockGraphListitemCreateInstance = jest.fn();
+const mockGraphListitemDeleteInstance = jest.fn();
+
 // Chat operation mocks
 const mockListConvosInstance = jest.fn();
 const mockGetConvoInstance = jest.fn();
@@ -78,6 +88,8 @@ jest.mock('@atproto/api', () => {
 			unmute: mockUnmuteInstance,
 			uploadBlob: mockUploadBlobInstance, // Added for media uploads
 			getPostThread: mockGetPostThreadInstance, // Added for getPostThread
+			// List methods
+			getListFeed: mockGetListFeedInstance,
 			// Nested structure for block/unblock as used in userOperations.ts:
 			app: {
 				bsky: {
@@ -87,12 +99,24 @@ jest.mock('@atproto/api', () => {
 							delete: mockGraphBlockDeleteInstance,
 						},
 						muteThread: mockMuteThreadInstance, // Added for muteThread
+						list: {
+							create: mockGraphListCreateInstance,
+							put: mockGraphListPutInstance,
+							delete: mockGraphListDeleteInstance,
+							get: mockGraphListGetInstance,
+						},
+						listitem: {
+							create: mockGraphListitemCreateInstance,
+							delete: mockGraphListitemDeleteInstance,
+						},
+						getLists: mockGetListsInstance,
 					},
 					actor: {
 						searchActors: mockActorSearchActorsInstance,
 					},
 					feed: {
 						searchPosts: mockFeedSearchPostsInstance,
+						getListFeed: mockGetListFeedInstance,
 					},
 					notification: {
 						listNotifications: mockListNotificationsInstance,
@@ -185,6 +209,16 @@ describe('BlueskyV2', () => {
 		mockListNotificationsInstance.mockClear();
 		mockGetUnreadCountInstance.mockClear();
 		mockUpdateSeenInstance.mockClear();
+		
+		// Clear list operation mocks
+		mockGraphListCreateInstance.mockClear();
+		mockGraphListPutInstance.mockClear();
+		mockGraphListDeleteInstance.mockClear();
+		mockGraphListGetInstance.mockClear();
+		mockGetListsInstance.mockClear();
+		mockGetListFeedInstance.mockClear();
+		mockGraphListitemCreateInstance.mockClear();
+		mockGraphListitemDeleteInstance.mockClear();
 
 		// Clear chat operation mocks (call history only)
 		mockListConvosInstance.mockClear();
@@ -1451,6 +1485,325 @@ describe('BlueskyV2', () => {
 				});
 
 				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "acceptConvo" is not supported!');
+			});
+		});
+	});
+
+	describe('list operations', () => {
+		describe('createList operation', () => {
+			it('should create a list successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'createList';
+					if (name === 'name') return 'My Test List';
+					if (name === 'purpose') return 'app.bsky.graph.defs#curatelist';
+					if (name === 'description') return 'This is a test curated list';
+					return null;
+				});
+
+				const mockCreateResponse = {
+					uri: 'at://did:plc:test/app.bsky.graph.list/123',
+					cid: 'bafylist123',
+				};
+				
+				mockGraphListCreateInstance.mockResolvedValue(mockCreateResponse);
+
+				await node.execute.call(executeFunctions);
+
+				expect(mockGraphListCreateInstance).toHaveBeenCalled();
+				expect(mockGraphListCreateInstance.mock.calls[0][0]).toEqual({ repo: 'test-did' });
+				expect(mockLoginInstance).toHaveBeenCalledWith({ identifier: 'test-identifier', password: 'test-password' });
+				expect(mockGraphListCreateInstance).toHaveBeenCalled();
+				expect(mockGraphListCreateInstance.mock.calls[0][0]).toEqual({ repo: 'test-did' });
+				expect(mockGraphListCreateInstance.mock.calls[0][1].$type).toBe('app.bsky.graph.list');
+				expect(mockGraphListCreateInstance.mock.calls[0][1].name).toBe('My Test List');
+				expect(mockGraphListCreateInstance.mock.calls[0][1].purpose).toBe('app.bsky.graph.defs#curatelist');
+				expect(mockGraphListCreateInstance.mock.calls[0][1].description).toBe('This is a test curated list');
+			});
+
+			it('should handle missing description', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'createList';
+					if (name === 'name') return 'My Test List';
+					if (name === 'purpose') return 'app.bsky.graph.defs#curatelist';
+					if (name === 'description') return defaultValue;
+					return null;
+				});
+
+				const mockCreateResponse = {
+					uri:
+
+					cid: 'bafylist123',
+				};
+				
+				mockGraphListCreateInstance.mockResolvedValue(mockCreateResponse);
+
+				await node.execute.call(executeFunctions);
+
+				expect(mockGraphListCreateInstance.mock.calls[0][1].description).toBe('');
+			});
+		});
+
+		describe('updateList operation', () => {
+			it('should update a list successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'updateList';
+					if (name === 'listUri') return 'at://did:plc:test/app.bsky.graph.list/123';
+					if (name === 'name') return 'Updated List Name';
+					if (name === 'purpose') return 'app.bsky.graph.defs#modlist';
+					if (name === 'description') return 'Updated description';
+					return null;
+				});
+
+				const mockGetResponse = {
+					value: {
+						createdAt: '2023-01-01T00:00:00.000Z'
+					}
+				};
+
+				const mockUpdateResponse = {
+					uri: 'at://did:plc:test/app.bsky.graph.list/123',
+					cid: 'bafyupdated456',
+				};
+				
+				mockGraphListGetInstance.mockResolvedValue(mockGetResponse);
+				mockGraphListPutInstance.mockResolvedValue(mockUpdateResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0][0].json.uri).toBe(mockUpdateResponse.uri);
+				expect(result[0][0].json.cid).toBe(mockUpdateResponse.cid);
+				expect(mockGraphListGetInstance).toHaveBeenCalled();
+				expect(mockGraphListPutInstance).toHaveBeenCalled();
+				expect(mockGraphListPutInstance.mock.calls[0][1].$type).toBe('app.bsky.graph.list');
+				expect(mockGraphListPutInstance.mock.calls[0][1].name).toBe('Updated List Name');
+				expect(mockGraphListPutInstance.mock.calls[0][1].purpose).toBe('app.bsky.graph.defs#modlist');
+				expect(mockGraphListPutInstance.mock.calls[0][1].description).toBe('Updated description');
+				expect(mockGraphListPutInstance.mock.calls[0][1].createdAt).toBe('2023-01-01T00:00:00.000Z');
+			});
+		});
+
+		describe('deleteList operation', () => {
+			it('should delete a list successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'deleteList';
+					if (name === 'listUri') return 'at://did:plc:test/app.bsky.graph.list/123';
+					return null;
+				});
+				
+				mockGraphListDeleteInstance.mockResolvedValue({});
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0][0].json.uri).toBe('at://did:plc:test/app.bsky.graph.list/123');
+				expect(result[0][0].json.deleted).toBe(true);
+				expect(mockGraphListDeleteInstance).toHaveBeenCalled();
+				expect(mockGraphListDeleteInstance.mock.calls[0][0].repo).toBe('test-did');
+				expect(mockGraphListDeleteInstance.mock.calls[0][0].rkey).toBe('123');
+			});
+		});
+
+		describe('getLists operation', () => {
+			it('should get user lists successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'getLists';
+					if (name === 'actor') return 'test-handle.bsky.social';
+					if (name === 'limit') return 50;
+					if (name === 'cursor') return '';
+					return defaultValue;
+				});
+				
+				const mockListsResponse = {
+					data: {
+						lists: [
+							{
+								uri: 'at://did:plc:test/app.bsky.graph.list/123',
+								name: 'Test List 1',
+								purpose: 'app.bsky.graph.defs#curatelist',
+								description: 'Description 1',
+							},
+							{
+								uri: 'at://did:plc:test/app.bsky.graph.list/456',
+								name: 'Test List 2',
+								purpose: 'app.bsky.graph.defs#modlist',
+								description: 'Description 2',
+							}
+						],
+						cursor: 'next-cursor-value'
+					}
+				};
+				
+				mockGetListsInstance.mockResolvedValue(mockListsResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0]).toHaveLength(3); // 2 lists + 1 pagination object
+				expect(result[0][0].json).toEqual(mockListsResponse.data.lists[0]);
+				expect(result[0][1].json).toEqual(mockListsResponse.data.lists[1]);
+				expect(result[0][2].json.cursor).toBe('next-cursor-value');
+				expect(result[0][2].json.pagination).toBe(true);
+				expect(mockGetListsInstance).toHaveBeenCalled();
+				expect(mockGetListsInstance.mock.calls[0][0].actor).toBe('test-handle.bsky.social');
+				expect(mockGetListsInstance.mock.calls[0][0].limit).toBe(50);
+			});
+
+			it('should handle pagination with cursor', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'getLists';
+					if (name === 'actor') return 'test-handle.bsky.social';
+					if (name === 'limit') return 25;
+					if (name === 'cursor') return 'some-cursor-value';
+					return defaultValue;
+				});
+				
+				const mockListsResponse = {
+					data: {
+						lists: [
+							{
+								uri: 'at://did:plc:test/app.bsky.graph.list/789',
+								name: 'Test List 3',
+							}
+						]
+					}
+				};
+				
+				mockGetListsInstance.mockResolvedValue(mockListsResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(mockGetListsInstance.mock.calls[0][0].cursor).toBe('some-cursor-value');
+				expect(mockGetListsInstance.mock.calls[0][0].limit).toBe(25);
+				expect(result[0]).toHaveLength(1);
+			});
+		});
+
+		describe('getListFeed operation', () => {
+			it('should get list feed successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string, index: number, defaultValue?: any) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'getListFeed';
+					if (name === 'listUri') return 'at://did:plc:test/app.bsky.graph.list/123';
+					if (name === 'limit') return 50;
+					if (name === 'cursor') return '';
+					return defaultValue;
+				});
+				
+				const mockFeedResponse = {
+					data: {
+						feed: [
+							{
+								post: {
+									uri: 'at://did:plc:user1/app.bsky.feed.post/123',
+									text: 'First post',
+									author: { did: 'did:plc:user1' }
+								}
+							},
+							{
+								post: {
+									uri: 'at://did:plc:user2/app.bsky.feed.post/456',
+									text: 'Second post',
+									author: { did: 'did:plc:user2' }
+								}
+							}
+						],
+						cursor: 'next-feed-cursor'
+					}
+				};
+				
+				mockGetListFeedInstance.mockResolvedValue(mockFeedResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0]).toHaveLength(3); // 2 feed items + 1 pagination object
+				expect(result[0][0].json).toEqual(mockFeedResponse.data.feed[0]);
+				expect(result[0][1].json).toEqual(mockFeedResponse.data.feed[1]);
+				expect(result[0][2].json.cursor).toBe('next-feed-cursor');
+				expect(result[0][2].json.pagination).toBe(true);
+				expect(mockGetListFeedInstance).toHaveBeenCalled();
+				expect(mockGetListFeedInstance.mock.calls[0][0].list).toBe('at://did:plc:test/app.bsky.graph.list/123');
+				expect(mockGetListFeedInstance.mock.calls[0][0].limit).toBe(50);
+			});
+		});
+
+		describe('addUserToList operation', () => {
+			it('should add a user to a list successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'addUserToList';
+					if (name === 'listUri') return 'at://did:plc:test/app.bsky.graph.list/123';
+					if (name === 'userDid') return 'did:plc:targetuser';
+					return null;
+				});
+
+				const mockAddResponse = {
+					uri: 'at://did:plc:test/app.bsky.graph.listitem/456',
+					cid: 'bafylistitem123',
+				};
+				
+				mockGraphListitemCreateInstance.mockResolvedValue(mockAddResponse);
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0][0].json.uri).toBe(mockAddResponse.uri);
+				expect(result[0][0].json.cid).toBe(mockAddResponse.cid);
+				expect(mockGraphListitemCreateInstance).toHaveBeenCalled();
+				expect(mockGraphListitemCreateInstance.mock.calls[0][0].repo).toBe('test-did');
+				expect(mockGraphListitemCreateInstance.mock.calls[0][1].$type).toBe('app.bsky.graph.listitem');
+				expect(mockGraphListitemCreateInstance.mock.calls[0][1].list).toBe('at://did:plc:test/app.bsky.graph.list/123');
+				expect(mockGraphListitemCreateInstance.mock.calls[0][1].subject).toBe('did:plc:targetuser');
+			});
+		});
+
+		describe('removeUserFromList operation', () => {
+			it('should remove a user from a list successfully', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'removeUserFromList';
+					if (name === 'listItemUri') return 'at://did:plc:test/app.bsky.graph.listitem/456';
+					return null;
+				});
+				
+				mockGraphListitemDeleteInstance.mockResolvedValue({});
+
+				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
+
+				expect(result[0][0].json.uri).toBe('at://did:plc:test/app.bsky.graph.listitem/456');
+				expect(result[0][0].json.deleted).toBe(true);
+				expect(mockGraphListitemDeleteInstance).toHaveBeenCalled();
+				expect(mockGraphListitemDeleteInstance.mock.calls[0][0].repo).toBe('test-did');
+				expect(mockGraphListitemDeleteInstance.mock.calls[0][0].rkey).toBe('456');
+			});
+		});
+
+		describe('error handling', () => {
+			it('should handle API errors in list operations', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'createList';
+					if (name === 'name' ) return 'My Test List';
+					if (name === 'purpose') return 'app.bsky.graph.defs#curatelist';
+					if (name === 'description') return 'This is a test curated list';
+					return null;
+				});
+				
+				mockGraphListCreateInstance.mockRejectedValue(new Error('Failed to create list'));
+
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('Failed to create list');
+			});
+
+			it('should handle invalid operation', async () => {
+				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
+					if (name === 'resource') return 'list';
+					if (name === 'operation') return 'invalidOperation';
+					return null;
+				});
+
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "invalidOperation" is not supported for resource "list"');
 			});
 		});
 	});

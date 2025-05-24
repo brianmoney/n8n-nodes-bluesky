@@ -5,6 +5,31 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **List Operations**: Complete list management functionality for organizing users and content
+  - **Add User to List**: Add users to custom lists for categorization and curation
+  - **Create List**: Create new custom lists with configurable names, descriptions, and purposes (curate list or mod list)
+  - **Delete List**: Remove lists that are no longer needed with proper cleanup
+  - **Get List Feed**: Retrieve posts from specific lists with automatic pagination support
+  - **Get Lists**: Get all lists for a user with configurable limits and pagination
+  - **Remove User From List**: Remove users from existing lists with proper validation
+  - **Update List**: Modify existing list properties including names, descriptions, and purposes
+  - Full AT Protocol integration using proper `com.atproto.repo` methods for record management
+  - Automatic pagination handling for large lists and feeds
+  - Comprehensive input validation and error handling
+  - Support for both curate lists (content curation) and mod lists (moderation purposes)
+
+### Technical
+- **API Integration**: Implemented proper AT Protocol methods for list operations
+  - Uses `com.atproto.repo.createRecord`, `putRecord`, `deleteRecord`, and `getRecord` for list management
+  - Uses `app.bsky.graph.getLists` and `app.bsky.feed.getListFeed` for data retrieval
+  - Proper URI handling with `@atproto/syntax` for AT Protocol URIs
+- **Type Safety**: Added comprehensive TypeScript support with proper type casting and validation
+- **Code Quality**: Alphabetized operation options to meet ESLint requirements
+- **Test Infrastructure**: Excluded test files from build process to prevent compilation errors
+
 ## [1.4.0] - 2025-05-24
 
 ### Added

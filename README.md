@@ -54,6 +54,15 @@ In n8n community edition, you can install the nodes in the settings page by sear
 - **Update Seen Notifications** - Mark notifications as read
 - **Get Post Interactions** - Analyze post engagement (likes, reposts, replies)
 
+### List Operations
+- **Add User to List** - Add users to custom lists for categorization
+- **Create List** - Create new custom lists with descriptions and purposes
+- **Delete List** - Remove lists that are no longer needed
+- **Get List Feed** - Retrieve posts from specific lists with pagination
+- **Get Lists** - Get all lists for a user with automatic pagination
+- **Remove User From List** - Remove users from existing lists
+- **Update List** - Modify list names, descriptions, and purposes
+
 ### Graph Operations  
 - **Mute Thread** - Mute conversation threads to stop notifications
 
@@ -98,6 +107,32 @@ Filters are applied at the API level for optimal performance.
 
 Automatic pagination handles large follower/following lists efficiently.
 
+### List Management
+
+**Create List**
+- **List Name**: Display name for the list
+- **Purpose**: Either "Curate List" for content curation or "Mod List" for moderation
+- **Description**: Optional description explaining the list's purpose
+
+**Get Lists**
+- **Actor**: Handle or DID of the user whose lists to retrieve
+- **Limit**: Maximum number of lists to return (1-100, default: 50)
+
+Returns all lists created by the specified user with automatic pagination handling.
+
+**Get List Feed**
+- **List URI**: AT URI of the list to retrieve posts from
+- **Limit**: Maximum number of posts to return (1-100, default: 50)
+
+Retrieves posts from users who are members of the specified list.
+
+**Add/Remove Users**
+- **List URI**: AT URI of the target list
+- **User DID**: Decentralized identifier of the user to add/remove
+- **List Item URI**: (Remove only) AT URI of the specific list membership record
+
+List operations support automatic pagination and handle large lists efficiently.
+
 ### Media Posting
 
 **Create Post with Media**
@@ -128,7 +163,10 @@ npm test
 This enhanced Bluesky node is perfect for:
 
 - **Social Media Management**: Automated posting, content scheduling, engagement tracking
-- **Community Building**: Follower management, notification handling, interaction monitoring  
+- **Community Building**: Follower management, notification handling, interaction monitoring
+- **List Management**: Organize users into custom lists for content curation and moderation purposes
+- **Content Curation**: Create and manage curated lists of users for specialized feeds
+- **Moderation**: Build and maintain moderation lists for content filtering and community management
 - **Content Analytics**: Post performance tracking, engagement analysis, audience insights
 - **Brand Monitoring**: Search functionality for mentions and relevant content
 - **Automated Responses**: Reply and quote operations for customer service or engagement
