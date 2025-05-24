@@ -5,19 +5,24 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-05-24
+
+### Changed
+- **Chat UI Removed**: Disabled all chat operations from the user interface to avoid confusion since chat APIs are not available on the main Bluesky instance
+  - Chat functionality remains in codebase but is hidden from UI
+  - Chat operations now throw "operation not supported" errors if accessed
+  - Updated tests to verify chat operations are properly disabled
+  - Chat features can be re-enabled in future when Bluesky supports them on main instance
+
+### Improved
+- **Error Handling**: Enhanced error handling for chat operations with specific `XRPCNotSupported` detection
+  - Added centralized `handleChatError` helper function
+  - Improved error messages explaining chat API limitations
+  - All chat operations now provide clear feedback about experimental nature
+
 ## [Unreleased]
 
 ### Added
-- **Chat Operations**: Complete chat messaging functionality
-  - **List Conversations**: Get all conversations for the authenticated user with pagination
-  - **Send Message**: Send messages to specific conversations
-  - **Get Messages**: Retrieve messages from conversations with pagination support
-  - **Get Conversation for Members**: Find or create conversations between specific users
-  - **Accept Conversation**: Accept incoming conversation requests
-  - **Leave Conversation**: Leave existing conversations
-  - **Mute/Unmute Conversations**: Control conversation notifications
-  - **Update Read Status**: Mark messages as read with timestamp control
-  - **Delete Messages**: Remove messages from conversations (self only)
 - **Enhanced Feed Filtering**: Added comprehensive filtering options for "Get Author Feed" operation
   - **Posts with Replies**: All posts, including replies (default behavior)
   - **Posts without Replies**: Only top-level posts, excludes replies
@@ -37,6 +42,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chat API Mock Structure**: Fixed Jest mock setup for chat operations to properly handle nested API structure
 - **Media Upload Testing**: Enhanced mock implementation for binary data upload operations
 - **Mock Cleanup Strategy**: Improved test isolation while preserving mock object structure integrity
+
+## [1.3.1] - 2025-05-24
+
+### Fixed
+- **Chat Error Handling**: Enhanced error messages for chat operations with better feedback when chat functionality is not available on the current Bluesky instance (XRPCNotSupported errors)
+
+### Changed
+- **Documentation**: Updated README.md and CHANGELOG.md to clearly mark chat operations as experimental features requiring special Bluesky instance support
 
 ## [1.3.0] - 2025-05-23
 

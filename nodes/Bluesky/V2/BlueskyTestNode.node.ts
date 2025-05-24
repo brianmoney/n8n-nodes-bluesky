@@ -1209,9 +1209,10 @@ describe('BlueskyV2', () => {
 		});
 	});
 
-	describe('chat operations', () => {
+	// Chat operations temporarily disabled until Bluesky enables chat APIs on main instance
+	describe('chat operations (disabled)', () => {
 		describe('listConvos operation', () => {
-			it('should list conversations successfully', async () => {
+			it('should throw "operation not supported" error', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'chat';
 					if (name === 'operation') return 'listConvos';
@@ -1222,27 +1223,12 @@ describe('BlueskyV2', () => {
 					return null;
 				});
 
-				const mockConvosResponse = {
-					data: {
-						convos: [
-							{ id: 'convo1', lastMessage: { text: 'Hello' } },
-							{ id: 'convo2', lastMessage: { text: 'Hi there' } }
-						],
-						cursor: 'next_cursor'
-					}
-				};
-				mockListConvosInstance.mockResolvedValue(mockConvosResponse);
-
-				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(3); // 2 conversations + 1 pagination item
-				expect(result[0][0].json.id).toBe('convo1');
-				expect(result[0][1].json.id).toBe('convo2');
-				expect(result[0][2].json.cursor).toBe('next_cursor');
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "listConvos" is not supported!');
 			});
 		});
 
 		describe('sendMessage operation', () => {
-			it('should send a message successfully', async () => {
+			it('should throw "operation not supported" error', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'chat';
 					if (name === 'operation') return 'sendMessage';
@@ -1251,24 +1237,12 @@ describe('BlueskyV2', () => {
 					return null;
 				});
 
-				const mockMessageResponse = {
-					data: {
-						id: 'msg123',
-						text: 'Hello, this is a test message',
-						sentAt: '2024-01-01T12:00:00Z'
-					}
-				};
-				mockSendMessageInstance.mockResolvedValue(mockMessageResponse);
-
-				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(1);
-				expect(result[0][0].json.id).toBe('msg123');
-				expect(result[0][0].json.text).toBe('Hello, this is a test message');
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "sendMessage" is not supported!');
 			});
 		});
 
 		describe('getMessages operation', () => {
-			it('should get messages from a conversation successfully', async () => {
+			it('should throw "operation not supported" error', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'chat';
 					if (name === 'operation') return 'getMessages';
@@ -1278,27 +1252,12 @@ describe('BlueskyV2', () => {
 					return null;
 				});
 
-				const mockMessagesResponse = {
-					data: {
-						messages: [
-							{ id: 'msg1', text: 'First message' },
-							{ id: 'msg2', text: 'Second message' }
-						],
-						cursor: 'messages_cursor'
-					}
-				};
-				mockGetMessagesInstance.mockResolvedValue(mockMessagesResponse);
-
-				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(3); // 2 messages + 1 pagination item
-				expect(result[0][0].json.id).toBe('msg1');
-				expect(result[0][1].json.id).toBe('msg2');
-				expect(result[0][2].json.cursor).toBe('messages_cursor');
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "getMessages" is not supported!');
 			});
 		});
 
 		describe('getConvoForMembers operation', () => {
-			it('should get conversation for members successfully', async () => {
+			it('should throw "operation not supported" error', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'chat';
 					if (name === 'operation') return 'getConvoForMembers';
@@ -1306,25 +1265,12 @@ describe('BlueskyV2', () => {
 					return null;
 				});
 
-				const mockConvoResponse = {
-					data: {
-						convo: {
-							id: 'new_convo123',
-							members: ['did:plc:user1', 'did:plc:user2']
-						}
-					}
-				};
-				mockGetConvoForMembersInstance.mockResolvedValue(mockConvoResponse);
-
-				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(1);
-				expect(result[0][0].json.id).toBe('new_convo123');
-				expect(result[0][0].json.members).toEqual(['did:plc:user1', 'did:plc:user2']);
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "getConvoForMembers" is not supported!');
 			});
 		});
 
 		describe('acceptConvo operation', () => {
-			it('should accept a conversation successfully', async () => {
+			it('should throw "operation not supported" error', async () => {
 				(executeFunctions.getNodeParameter as jest.Mock).mockImplementation((name: string) => {
 					if (name === 'resource') return 'chat';
 					if (name === 'operation') return 'acceptConvo';
@@ -1332,17 +1278,7 @@ describe('BlueskyV2', () => {
 					return null;
 				});
 
-				const mockAcceptResponse = {
-					data: {
-						status: 'accepted',
-						convoId: 'convo123'
-					}
-				};
-				mockAcceptConvoInstance.mockResolvedValue(mockAcceptResponse);
-
-				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				expect(result[0]).toHaveLength(1);
-				expect((result[0][0].json as any).status).toBe('accepted');
+				await expect(node.execute.call(executeFunctions)).rejects.toThrow('The operation "acceptConvo" is not supported!');
 			});
 		});
 	});

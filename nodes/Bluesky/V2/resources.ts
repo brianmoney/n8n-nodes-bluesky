@@ -10,10 +10,11 @@ export const resourcesProperty: INodeProperties = {
 			name: 'Analytics',
 			value: 'analytics',
 		},
-		{
-			name: 'Chat',
-			value: 'chat',
-		},
+		// Chat resource temporarily disabled until Bluesky enables chat APIs on main instance
+		// {
+		// 	name: 'Chat',
+		// 	value: 'chat',
+		// },
 		{
 			name: 'Feed',
 			value: 'feed',

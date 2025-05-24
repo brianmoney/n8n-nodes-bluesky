@@ -1,6 +1,21 @@
 import { INodeExecutionData, INodeProperties, IDataObject } from 'n8n-workflow';
 import { AtpAgent } from '@atproto/api';
 
+/**
+ * Helper function to handle chat operation errors with better messaging
+ */
+function handleChatError(error: any, operation: string): Error {
+	if (error?.error === 'XRPCNotSupported' || error?.message?.includes('XRPCNotSupported')) {
+		return new Error(
+			`Chat functionality is currently experimental and not available on the main bsky.social instance. ` +
+			`To use chat features, you need to connect to a Bluesky instance that supports chat operations. ` +
+			`Error: ${error.message || error}`
+		);
+	}
+	
+	return new Error(`Error ${operation}: ${error.message || error}`);
+}
+
 export const chatProperties: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -292,7 +307,7 @@ export async function listConversationsOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error listing conversations: ${error}`);
+		throw handleChatError(error, 'listing conversations');
 	}
 }
 
@@ -314,7 +329,7 @@ export async function getConversationOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error getting conversation: ${error}`);
+		throw handleChatError(error, 'getting conversation');
 	}
 }
 
@@ -355,7 +370,7 @@ export async function getMessagesOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error getting messages: ${error}`);
+		throw handleChatError(error, 'getting messages');
 	}
 }
 
@@ -383,7 +398,7 @@ export async function sendMessageOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error sending message: ${error}`);
+		throw handleChatError(error, 'sending message');
 	}
 }
 
@@ -405,7 +420,7 @@ export async function getConvoForMembersOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error getting conversation for members: ${error}`);
+		throw handleChatError(error, 'getting conversation for members');
 	}
 }
 
@@ -427,7 +442,7 @@ export async function acceptConversationOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error accepting conversation: ${error}`);
+		throw handleChatError(error, 'accepting conversation');
 	}
 }
 
@@ -449,7 +464,7 @@ export async function leaveConversationOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error leaving conversation: ${error}`);
+		throw handleChatError(error, 'leaving conversation');
 	}
 }
 
@@ -471,7 +486,7 @@ export async function muteConversationOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error muting conversation: ${error}`);
+		throw handleChatError(error, 'muting conversation');
 	}
 }
 
@@ -493,7 +508,7 @@ export async function unmuteConversationOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error unmuting conversation: ${error}`);
+		throw handleChatError(error, 'unmuting conversation');
 	}
 }
 
@@ -519,7 +534,7 @@ export async function updateReadStatusOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error updating read status: ${error}`);
+		throw handleChatError(error, 'updating read status');
 	}
 }
 
@@ -545,6 +560,6 @@ export async function deleteMessageOperation(
 
 		return returnData;
 	} catch (error) {
-		throw new Error(`Error deleting message: ${error}`);
+		throw handleChatError(error, 'deleting message');
 	}
 }
