@@ -185,10 +185,9 @@ export const chatProperties: INodeProperties[] = [
 		name: 'limit',
 		type: 'number',
 		default: 50,
-		description: 'Maximum number of items to return',
+		description: 'Max number of results to return',
 		typeOptions: {
 			minValue: 1,
-			maxValue: 100,
 		},
 		displayOptions: {
 			show: {
