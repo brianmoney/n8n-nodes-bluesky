@@ -49,10 +49,9 @@ export const analyticsProperties: INodeProperties[] = [
 		type: 'number',
 		typeOptions: {
 			minValue: 1,
-			maxValue: 1000,
 		},
 		default: 50,
-		description: 'Maximum number of notifications to return (between 1 and 1000). Pagination is handled automatically.',
+		description: 'Max number of results to return',
 		displayOptions: {
 			show: {
 				resource: ['analytics'],
@@ -65,7 +64,7 @@ export const analyticsProperties: INodeProperties[] = [
 		name: 'unreadOnly',
 		type: 'boolean',
 		default: true,
-		description: 'If true, only unread notifications will be returned. Note: Pagination is based on underlying API pages.',
+		description: 'Whether to return only unread notifications. Note: Pagination is based on underlying API pages.',
 		displayOptions: {
 			show: {
 				resource: ['analytics'],
