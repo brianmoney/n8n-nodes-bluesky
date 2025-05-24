@@ -17,14 +17,17 @@
     "engagement"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/brian/n8n-nodes-bluesky-enhanced#readme",
+  "homepage": "https://github.com/brianmoney/n8n-nodes-bluesky#readme",
   "author": {
     "name": "Brian",
     "email": "brian@example.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brian/n8n-nodes-bluesky-enhanced.git"
+    "url": "https://github.com/brianmoney/n8n-nodes-bluesky.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brianmoney/n8n-nodes-bluesky/issues"
   },
   "engines": {
     "node": ">=18.10",

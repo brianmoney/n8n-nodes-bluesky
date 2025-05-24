@@ -178,6 +178,10 @@ Perfect for:
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes for each version.
 
+## Repository
+
+This enhanced version is maintained at: https://github.com/brianmoney/n8n-nodes-bluesky
+
 ## License
 
 MIT
