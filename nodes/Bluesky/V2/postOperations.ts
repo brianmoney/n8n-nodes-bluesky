@@ -1,6 +1,7 @@
 import { AtpAgent, RichText, BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
 import { INodeExecutionData, INodeProperties, NodeOperationError, IExecuteFunctions } from 'n8n-workflow';
 import { getLanguageOptions } from './languages';
+import { uploadVideo } from './videoOperations';
 import ogs from 'open-graph-scraper';
 
 export const postProperties: INodeProperties[] = [
@@ -280,19 +281,37 @@ export const postProperties: INodeProperties[] = [
 				name: 'media',
 				values: [
 					{
+						displayName: 'Media Type',
+						name: 'mediaType',
+						type: 'options',
+						options: [
+							{
+								name: 'Image',
+								value: 'image',
+							},
+							{
+								name: 'Video',
+								value: 'video',
+							},
+						],
+						default: 'image',
+						required: true,
+						description: 'Type of media to upload',
+					},
+					{
 						displayName: 'Binary Property',
 						name: 'binaryPropertyName',
 						type: 'string',
 						default: 'data',
 						required: true,
-						description: 'Name of the binary property containing the image data. Maximum 4 images.',
+						description: 'Name of the binary property containing the media data. For images: max 4 items. For videos: max 1 item per post.',
 					},
 					{
 						displayName: 'Alt Text',
 						name: 'altText',
 						type: 'string',
 						default: '',
-						description: 'Alt text for the image (max 1000 bytes)',
+						description: 'Alt text for accessibility (max 1000 characters for images, max 1000 characters for videos)',
 					},
 				],
 			},
@@ -304,6 +323,7 @@ export const postProperties: INodeProperties[] = [
 // Helper type for mediaItems
 interface MediaItem {
 	media: {
+		mediaType: 'image' | 'video';
 		binaryPropertyName: string;
 		altText?: string;
 	};
@@ -344,33 +364,73 @@ export async function postOperation(
 		if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
 			// No valid media items found - continue without media
 		} else {
-			// Valid media items available
-			if (mediaItemsInput.mediaItems.length > 4) {
-				throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
+			// Valid media items available - separate images and videos
+			const images: MediaItem[] = [];
+			const videos: MediaItem[] = [];
+			
+			console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
+			
+			// Check if we have access to binary data
+			const items = this.getInputData();
+			if (!items || items.length === 0) {
+				throw new NodeOperationError(node, 'No input items available');
 			}
 			
-			const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
-			
-			try {
-				// Check if we have access to binary data
-				const items = this.getInputData();
-				if (!items || items.length === 0) {
-					throw new NodeOperationError(node, 'No input items available');
+			for (const item of mediaItemsInput.mediaItems) {
+				console.log(`[DEBUG] Media item:`, JSON.stringify(item, null, 2));
+				console.log(`[DEBUG] Media type detected:`, item?.media?.mediaType);
+				
+				// Try to auto-detect media type from binary data if not explicitly set
+				let mediaType = item?.media?.mediaType;
+				if (!mediaType || mediaType === 'image') {
+					// Check if we can detect from MIME type
+					const binaryPropName = item?.media?.binaryPropertyName;
+					if (binaryPropName) {
+						try {
+							const inputItem = items[0];
+							if (inputItem?.binary?.[binaryPropName]?.mimeType) {
+								const mimeType = inputItem.binary[binaryPropName].mimeType;
+								console.log(`[DEBUG] Detected MIME type: ${mimeType}`);
+								if (mimeType.startsWith('video/')) {
+									console.log(`[DEBUG] Auto-detected video based on MIME type`);
+									mediaType = 'video';
+								}
+							}
+						} catch (error) {
+							console.log(`[DEBUG] Could not auto-detect media type: ${error.message}`);
+						}
+					}
 				}
 				
-				// For each media item defined in the node configuration
-				for (let i = 0; i < mediaItemsInput.mediaItems.length; i++) {
-					const mediaItem: MediaItem = mediaItemsInput.mediaItems[i];
+				if (mediaType === 'video') {
+					console.log(`[DEBUG] Adding item as video`);
+					videos.push(item);
+				} else {
+					console.log(`[DEBUG] Adding item as image (default)`);
+					// Default to image for backwards compatibility
+					images.push(item);
+				}
+			}
+			
+			// Validate media constraints
+			if (images.length > 4) {
+				throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
+			}
+			if (videos.length > 1) {
+				throw new NodeOperationError(node, 'Cannot attach more than 1 video to a post.');
+			}
+			if (videos.length > 0 && images.length > 0) {
+				throw new NodeOperationError(node, 'Cannot mix images and videos in the same post. Choose either images OR a video.');
+			}
+			
+			try {
+				if (videos.length > 0) {
+					// Handle video upload
+					const videoItem = videos[0];
+					const binaryPropName = videoItem.media.binaryPropertyName;
 					
-					// Validate media item structure
-					if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
-						continue; // Skip invalid media item
-					}
-					
-					const binaryPropName = mediaItem.media.binaryPropertyName;
-					
-					// Validate binary property exists before trying to upload
-					const inputItem = items[0]; // Always use first item for now
+					// Validate binary property exists
+					const inputItem = items[0];
 					if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
 						throw new NodeOperationError(
 							node,
@@ -379,31 +439,70 @@ export async function postOperation(
 						);
 					}
 					
-					// Access helpers from the passed IExecuteFunctions context
-					const binaryData = await this.helpers.getBinaryDataBuffer(0, binaryPropName);
+					console.log(`[INFO] Processing video upload from binary property: ${binaryPropName}`);
 					
-					if (!binaryData || !Buffer.isBuffer(binaryData)) {
-						throw new NodeOperationError(node, 
-							`Invalid binary data received from property '${binaryPropName}'. ` +
-							`Expected a Buffer but got ${typeof binaryData}.`
-						);
+					// Upload video
+					const videoResult = await uploadVideo.call(this, agent, binaryPropName, videoItem.media.altText);
+					
+					// Add video embed to post
+					postData.embed = {
+						$type: 'app.bsky.embed.video',
+						video: videoResult.blob,
+						alt: videoResult.altText,
+						...(videoResult.aspectRatio && { aspectRatio: videoResult.aspectRatio }),
+					};
+					
+				} else if (images.length > 0) {
+					// Handle image uploads (existing logic)
+					const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
+					
+					// For each image item
+					for (let i = 0; i < images.length; i++) {
+						const mediaItem: MediaItem = images[i];
+						
+						// Validate media item structure
+						if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
+							continue; // Skip invalid media item
+						}
+						
+						const binaryPropName = mediaItem.media.binaryPropertyName;
+						
+						// Validate binary property exists before trying to upload
+						const inputItem = items[0]; // Always use first item for now
+						if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
+							throw new NodeOperationError(
+								node,
+								`Binary property '${binaryPropName}' not found in input data. ` +
+								`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
+							);
+						}
+						
+						// Access helpers from the passed IExecuteFunctions context
+						const binaryData = await this.helpers.getBinaryDataBuffer(0, binaryPropName);
+						
+						if (!binaryData || !Buffer.isBuffer(binaryData)) {
+							throw new NodeOperationError(node, 
+								`Invalid binary data received from property '${binaryPropName}'. ` +
+								`Expected a Buffer but got ${typeof binaryData}.`
+							);
+						}
+						
+						const uploadResponse = await agent.uploadBlob(binaryData);
+						
+						// Add to our images array
+						imagesForEmbed.push({ 
+							image: uploadResponse.data.blob, 
+							alt: mediaItem.media.altText || '' 
+						});
 					}
 					
-					const uploadResponse = await agent.uploadBlob(binaryData);
-					
-					// Add to our images array
-					imagesForEmbed.push({ 
-						image: uploadResponse.data.blob, 
-						alt: mediaItem.media.altText || '' 
-					});
-				}
-				
-				// If images were uploaded successfully, add them to the post
-				if (imagesForEmbed.length > 0) {
-					postData.embed = {
-						$type: 'app.bsky.embed.images',
-						images: imagesForEmbed,
-					};
+					// If images were uploaded successfully, add them to the post
+					if (imagesForEmbed.length > 0) {
+						postData.embed = {
+							$type: 'app.bsky.embed.images',
+							images: imagesForEmbed,
+						};
+					}
 				}
 			} catch (error) {
 				console.error('[ERROR] Error processing media:', error);

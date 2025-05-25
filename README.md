@@ -7,7 +7,8 @@ This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/
 ## Key Features
 
 - **User Management**: Follow/follower operations with pagination, profile management, muting/blocking
-- **Advanced Posting**: Create posts with media attachments, replies, quotes, and website cards
+- **Advanced Posting**: Create posts with media attachments (images/video), replies, quotes, and website cards
+- **Media Support**: Image uploads (fully functional) and video uploads (limited - see Video Uploads section)
 - **Feed Operations**: Retrieve author feeds with filtering, timelines, and thread contexts
 - **Search Capabilities**: Search users and posts with filtering options
 - **Analytics & Notifications**: Enhanced notification management with filtering and interaction tracking
@@ -32,12 +33,16 @@ In n8n community edition, you can install the nodes in the settings page by sear
 - **Un-mute User** - Remove mute status from users
 
 ### Post Operations
-- **Create Post** - Create text posts with optional media attachments or website cards
+- **Create Post** - Create text posts with optional media attachments (images/video) or website cards
 - **Like/Unlike** - Like and unlike posts
 - **Repost/Delete Repost** - Repost content and manage reposts
 - **Reply to Post** - Reply to existing posts with proper thread structure
 - **Quote Post** - Quote existing posts in new posts
 - **Delete Post** - Remove your own posts
+
+**Media Support:**
+- **Images**: Fully functional (up to 4 images per post)
+- **Video**: Limited functionality (uploads succeed but videos don't display - see Video Uploads section)
 
 ### Feed Operations
 - **Get Author Feed** - Retrieve posts from specific users with filtering options
@@ -135,7 +140,7 @@ List operations support automatic pagination and handle large lists efficiently.
 
 ### Media Posting
 
-**Create Post with Media**
+**Create Post with Images**
 - **Include Media**: Enable media attachment mode
 - **Media Items**: Collection of up to 4 images
   - **Binary Property**: Name of n8n binary property containing image data
@@ -143,20 +148,39 @@ List operations support automatic pagination and handle large lists efficiently.
 
 When media is included, website card options are automatically disabled.
 
-## Testing & Quality
+### Video Uploads
 
-This package maintains high code quality with comprehensive test coverage:
+**⚠️ Current Status: Limited Functionality**
 
-- **57/57 Tests Passing** ✅ - 100% test pass rate
-- **Full Integration Testing** - All operations tested with proper mocking
-- **TypeScript Support** - Fully typed with proper error handling
-- **Jest Test Suite** - Robust testing framework with detailed coverage
-- **Continuous Integration** - Automated testing on all changes
+Video uploads are technically supported but have significant limitations due to Bluesky's infrastructure:
 
-Run tests locally:
-```bash
-npm test
-```
+**Create Post with Video**
+- **Include Media**: Enable media attachment mode and select video files
+- **Video Items**: Single video file (up to 100MB)
+  - **Binary Property**: Name of n8n binary property containing video data
+  - **Alt Text**: Accessibility description for the video
+
+**Important Limitations (as of May 25, 2025):**
+- ✅ **Video uploads succeed** - Files upload without errors
+- ❌ **Videos don't display** - Show "Video not found" on Bluesky platform
+- ❌ **No video processing** - No thumbnails, playlists, or streaming support
+- ❌ **Server APIs not deployed** - Bluesky's video processing pipeline inactive
+
+**Root Cause:**
+Bluesky's video infrastructure requires server-side processing to generate streaming playlists and thumbnails. While the complete infrastructure exists in Bluesky's codebase, the video processing APIs are not yet deployed on their servers (all return `XRPCNotSupported`).
+
+**Recommendations:**
+- **Monitor Bluesky announcements** for video feature availability updates
+- **Test periodically** as the feature could be activated without notice
+
+**Technical Details:**
+- Videos upload as binary blobs successfully
+- Missing: playlist generation, thumbnail creation, proper embed structure
+- Infrastructure ready: Complete video processing pipeline exists in Bluesky's code
+- Timeline: Unknown - awaiting server-side deployment by Bluesky team
+
+For detailed technical analysis, see [VIDEO_STATUS_REPORT.md](VIDEO_STATUS_REPORT.md).
+
 
 ## Use Cases
 
@@ -171,6 +195,7 @@ This enhanced Bluesky node is perfect for:
 - **Brand Monitoring**: Search functionality for mentions and relevant content
 - **Automated Responses**: Reply and quote operations for customer service or engagement
 - **Data Collection**: Comprehensive user and content data extraction with pagination
+- **Visual Content**: Image posting (fully functional), video posting (limited until Bluesky enables video processing)
 
 ## Changelog
 
