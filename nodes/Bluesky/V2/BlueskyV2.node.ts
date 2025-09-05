@@ -468,12 +468,63 @@ export class BlueskyV2 implements INodeType {
 					break;
 
 				case 'reply':
-					const uriReply = this.getNodeParameter('uri', i) as string;
-					const cidReply = this.getNodeParameter('cid', i) as string;
-					const replyText = this.getNodeParameter('replyText', i) as string;
-					const replyLangs = this.getNodeParameter('replyLangs', i) as string[];
-					const replyData = await replyOperation(agent, replyText, replyLangs, uriReply, cidReply);
-					returnData.push(...replyData);
+					try {
+						const uriReply = this.getNodeParameter('uri', i) as string;
+						const cidReply = this.getNodeParameter('cid', i) as string;
+						const replyText = this.getNodeParameter('replyText', i) as string;
+						const replyLangs = this.getNodeParameter('replyLangs', i) as string[];
+						const includeMediaReply = this.getNodeParameter('includeMedia', i, false) as boolean;
+						let mediaItemsInputReply: any = undefined;
+						if (includeMediaReply) {
+							try {
+								const rawMediaItems = this.getNodeParameter('mediaItems', i, {}) as any;
+								let mediaArray: any[] = [];
+								if (rawMediaItems && rawMediaItems.media && Array.isArray(rawMediaItems.media)) {
+									mediaArray = rawMediaItems.media;
+								}
+								mediaItemsInputReply = { mediaItems: mediaArray };
+							} catch (error) {
+								console.error(`[ERROR] Error processing media items:`, error);
+								mediaItemsInputReply = { mediaItems: [] };
+							}
+						}
+						let websiteCardDataReply: any = undefined;
+						if (!includeMediaReply) {
+							const websiteCardDetails = this.getNodeParameter('websiteCard', i, {}) as {
+								details?: {
+									uri: string;
+									title: string;
+									description: string;
+									thumbnailBinaryProperty?: string;
+									fetchOpenGraphTags: boolean;
+								};
+							};
+							if (websiteCardDetails.details?.uri) {
+								websiteCardDataReply = {
+									uri: websiteCardDetails.details.uri,
+									title: websiteCardDetails.details.title,
+									description: websiteCardDetails.details.description,
+									thumbnailBinaryProperty: websiteCardDetails.details.thumbnailBinaryProperty,
+									fetchOpenGraphTags: websiteCardDetails.details.fetchOpenGraphTags,
+								};
+							}
+						}
+						const replyData = await replyOperation.call(
+							this,
+							agent,
+							replyText,
+							replyLangs,
+							uriReply,
+							cidReply,
+							websiteCardDataReply,
+							includeMediaReply,
+							mediaItemsInputReply,
+						);
+						returnData.push(...replyData);
+					} catch (error) {
+						console.error(`[ERROR] Bluesky reply operation failed: ${error.message}`, error);
+						throw error;
+					}
 					break;
 
 				case 'quote':

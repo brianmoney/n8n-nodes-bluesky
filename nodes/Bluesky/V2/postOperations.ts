@@ -239,7 +239,7 @@ export const postProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['post'],
-				operation: ['post'],
+				operation: ['post', 'reply'],
 				includeMedia: [false], // Hide if includeMedia is true
 			},
 		},
@@ -253,7 +253,7 @@ export const postProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['post'],
-				operation: ['post'],
+				operation: ['post', 'reply'],
 			},
 		},
 	},
@@ -271,7 +271,7 @@ export const postProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['post'],
-				operation: ['post'],
+				operation: ['post', 'reply'],
 				includeMedia: [true],
 			},
 		},
@@ -329,6 +329,247 @@ interface MediaItem {
 	};
 }
 
+// Reusable function for processing media items
+async function processMediaItems(
+	context: IExecuteFunctions,
+	agent: BskyAgent,
+	includeMedia: boolean | undefined,
+	mediaItemsInput: { mediaItems?: any[] } | undefined,
+): Promise<any | undefined> {
+	const node = context.getNode();
+	
+	if (includeMedia !== true) {
+		return undefined;
+	}
+	
+	// Make sure we have valid media items to process
+	if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
+		return undefined; // No valid media items found
+	}
+	
+	// Valid media items available - separate images and videos
+	const images: MediaItem[] = [];
+	const videos: MediaItem[] = [];
+	
+	console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
+	
+	// Check if we have access to binary data
+	const items = context.getInputData();
+	if (!items || items.length === 0) {
+		throw new NodeOperationError(node, 'No input items available');
+	}
+	
+	for (const item of mediaItemsInput.mediaItems) {
+		console.log(`[DEBUG] Media item:`, JSON.stringify(item, null, 2));
+		console.log(`[DEBUG] Media type detected:`, item?.media?.mediaType);
+		
+		// Try to auto-detect media type from binary data if not explicitly set
+		let mediaType = item?.media?.mediaType;
+		if (!mediaType || mediaType === 'image') {
+			// Check if we can detect from MIME type
+			const binaryPropName = item?.media?.binaryPropertyName;
+			if (binaryPropName) {
+				try {
+					const inputItem = items[0];
+					if (inputItem?.binary?.[binaryPropName]?.mimeType) {
+						const mimeType = inputItem.binary[binaryPropName].mimeType;
+						console.log(`[DEBUG] Detected MIME type: ${mimeType}`);
+						if (mimeType.startsWith('video/')) {
+							console.log(`[DEBUG] Auto-detected video based on MIME type`);
+							mediaType = 'video';
+						}
+					}
+				} catch (error) {
+					console.log(`[DEBUG] Could not auto-detect media type: ${error.message}`);
+				}
+			}
+		}
+		
+		if (mediaType === 'video') {
+			console.log(`[DEBUG] Adding item as video`);
+			videos.push(item);
+		} else {
+			console.log(`[DEBUG] Adding item as image (default)`);
+			// Default to image for backwards compatibility
+			images.push(item);
+		}
+	}
+	
+	// Validate media constraints
+	if (images.length > 4) {
+		throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
+	}
+	if (videos.length > 1) {
+		throw new NodeOperationError(node, 'Cannot attach more than 1 video to a post.');
+	}
+	if (videos.length > 0 && images.length > 0) {
+		throw new NodeOperationError(node, 'Cannot mix images and videos in the same post. Choose either images OR a video.');
+	}
+	
+	try {
+		if (videos.length > 0) {
+			// Handle video upload
+			const videoItem = videos[0];
+			const binaryPropName = videoItem.media.binaryPropertyName;
+			
+			// Validate binary property exists
+			const inputItem = items[0];
+			if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
+				throw new NodeOperationError(
+					node,
+					`Binary property '${binaryPropName}' not found in input data. ` +
+					`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
+				);
+			}
+			
+			console.log(`[INFO] Processing video upload from binary property: ${binaryPropName}`);
+			
+			// Upload video
+			const videoResult = await uploadVideo.call(context, agent, binaryPropName, videoItem.media.altText);
+			
+			// Return video embed
+			return {
+				$type: 'app.bsky.embed.video',
+				video: videoResult.blob,
+				alt: videoResult.altText,
+				...(videoResult.aspectRatio && { aspectRatio: videoResult.aspectRatio }),
+			};
+			
+		} else if (images.length > 0) {
+			// Handle image uploads
+			const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
+			
+			// For each image item
+			for (let i = 0; i < images.length; i++) {
+				const mediaItem: MediaItem = images[i];
+				
+				// Validate media item structure
+				if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
+					continue; // Skip invalid media item
+				}
+				
+				const binaryPropName = mediaItem.media.binaryPropertyName;
+				
+				// Validate binary property exists before trying to upload
+				const inputItem = items[0]; // Always use first item for now
+				if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
+					throw new NodeOperationError(
+						node,
+						`Binary property '${binaryPropName}' not found in input data. ` +
+						`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
+					);
+				}
+				
+				// Access helpers from the passed IExecuteFunctions context
+				const binaryData = await context.helpers.getBinaryDataBuffer(0, binaryPropName);
+				
+				if (!binaryData || !Buffer.isBuffer(binaryData)) {
+					throw new NodeOperationError(node, 
+						`Invalid binary data received from property '${binaryPropName}'. ` +
+						`Expected a Buffer but got ${typeof binaryData}.`
+					);
+				}
+				
+				const uploadResponse = await agent.uploadBlob(binaryData);
+				
+				// Add to our images array
+				imagesForEmbed.push({ 
+					image: uploadResponse.data.blob, 
+					alt: mediaItem.media.altText || '' 
+				});
+			}
+			
+			// If images were uploaded successfully, return the embed
+			if (imagesForEmbed.length > 0) {
+				return {
+					$type: 'app.bsky.embed.images',
+					images: imagesForEmbed,
+				};
+			}
+		}
+	} catch (error) {
+		console.error('[ERROR] Error processing media:', error);
+		throw new NodeOperationError(node, `Failed to process media: ${error.message}`);
+	}
+	
+	return undefined;
+}
+
+// Reusable function for processing website cards
+async function processWebsiteCard(
+	context: IExecuteFunctions,
+	agent: BskyAgent,
+	websiteCard: {
+		thumbnailBinaryProperty?: string;
+		description: string | undefined;
+		title: string | undefined;
+		uri: string | undefined;
+		fetchOpenGraphTags: boolean | undefined;
+	} | undefined,
+): Promise<any | undefined> {
+	const node = context.getNode();
+	
+	if (!websiteCard?.uri) {
+		return undefined;
+	}
+	
+	// Website card handling
+	let thumbBlob: ComAtprotoRepoUploadBlob.OutputSchema['blob'] | undefined = undefined;
+
+	if (websiteCard.thumbnailBinaryProperty) {
+		try {
+			const binaryData = await context.helpers.getBinaryDataBuffer(0, websiteCard.thumbnailBinaryProperty);
+			const uploadResponse = await agent.uploadBlob(binaryData);
+			thumbBlob = uploadResponse.data.blob;
+		} catch (error) {
+			throw new NodeOperationError(node, error, {
+				message: `Failed to upload website card thumbnail from binary property '${websiteCard.thumbnailBinaryProperty}'`,
+			});
+		}
+	}
+
+	if (websiteCard.fetchOpenGraphTags === true) {
+		try {
+			const ogsResponse = await ogs({ url: websiteCard.uri });
+			if (ogsResponse.error || !ogsResponse.result) {
+				throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error || 'No result'}`);
+			}
+			const ogResult = ogsResponse.result;
+			if (ogResult.ogImage && ogResult.ogImage.length > 0 && ogResult.ogImage[0].url) {
+				const imageUrl = ogResult.ogImage[0].url;
+				const imageResponse = await fetch(imageUrl);
+				if (!imageResponse.ok) {
+					throw new Error(`Failed to fetch Open Graph image from ${imageUrl}: ${imageResponse.statusText}`);
+				}
+				const imageArrayBuffer = await imageResponse.arrayBuffer();
+				const imageBuffer = Buffer.from(imageArrayBuffer);
+				const uploadResponse = await agent.uploadBlob(imageBuffer);
+				thumbBlob = uploadResponse.data.blob;
+			}
+			if (ogResult.ogTitle) {
+				websiteCard.title = ogResult.ogTitle;
+			}
+			if (ogResult.ogDescription) {
+				websiteCard.description = ogResult.ogDescription;
+			}
+		} catch (error) {
+			throw new NodeOperationError(node, error, {
+				message: 'Failed to process Open Graph data for website card',
+			});
+		}
+	}
+
+	return {
+		$type: 'app.bsky.embed.external',
+		external: {
+			uri: websiteCard.uri,
+			title: websiteCard.title || '',
+			description: websiteCard.description || '',
+			thumb: thumbBlob,
+		},
+	};
+}
+
 export async function postOperation(
 	this: IExecuteFunctions, // 'this' is the IExecuteFunctions context
 	agent: BskyAgent,
@@ -358,213 +599,15 @@ export async function postOperation(
 		createdAt: new Date().toISOString(),
 	};
 
-	// Enhanced mediaItems handling
-	if (includeMedia === true) {
-		// Make sure we have valid media items to process
-		if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
-			// No valid media items found - continue without media
-		} else {
-			// Valid media items available - separate images and videos
-			const images: MediaItem[] = [];
-			const videos: MediaItem[] = [];
-			
-			console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
-			
-			// Check if we have access to binary data
-			const items = this.getInputData();
-			if (!items || items.length === 0) {
-				throw new NodeOperationError(node, 'No input items available');
-			}
-			
-			for (const item of mediaItemsInput.mediaItems) {
-				console.log(`[DEBUG] Media item:`, JSON.stringify(item, null, 2));
-				console.log(`[DEBUG] Media type detected:`, item?.media?.mediaType);
-				
-				// Try to auto-detect media type from binary data if not explicitly set
-				let mediaType = item?.media?.mediaType;
-				if (!mediaType || mediaType === 'image') {
-					// Check if we can detect from MIME type
-					const binaryPropName = item?.media?.binaryPropertyName;
-					if (binaryPropName) {
-						try {
-							const inputItem = items[0];
-							if (inputItem?.binary?.[binaryPropName]?.mimeType) {
-								const mimeType = inputItem.binary[binaryPropName].mimeType;
-								console.log(`[DEBUG] Detected MIME type: ${mimeType}`);
-								if (mimeType.startsWith('video/')) {
-									console.log(`[DEBUG] Auto-detected video based on MIME type`);
-									mediaType = 'video';
-								}
-							}
-						} catch (error) {
-							console.log(`[DEBUG] Could not auto-detect media type: ${error.message}`);
-						}
-					}
-				}
-				
-				if (mediaType === 'video') {
-					console.log(`[DEBUG] Adding item as video`);
-					videos.push(item);
-				} else {
-					console.log(`[DEBUG] Adding item as image (default)`);
-					// Default to image for backwards compatibility
-					images.push(item);
-				}
-			}
-			
-			// Validate media constraints
-			if (images.length > 4) {
-				throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
-			}
-			if (videos.length > 1) {
-				throw new NodeOperationError(node, 'Cannot attach more than 1 video to a post.');
-			}
-			if (videos.length > 0 && images.length > 0) {
-				throw new NodeOperationError(node, 'Cannot mix images and videos in the same post. Choose either images OR a video.');
-			}
-			
-			try {
-				if (videos.length > 0) {
-					// Handle video upload
-					const videoItem = videos[0];
-					const binaryPropName = videoItem.media.binaryPropertyName;
-					
-					// Validate binary property exists
-					const inputItem = items[0];
-					if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
-						throw new NodeOperationError(
-							node,
-							`Binary property '${binaryPropName}' not found in input data. ` +
-							`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
-						);
-					}
-					
-					console.log(`[INFO] Processing video upload from binary property: ${binaryPropName}`);
-					
-					// Upload video
-					const videoResult = await uploadVideo.call(this, agent, binaryPropName, videoItem.media.altText);
-					
-					// Add video embed to post
-					postData.embed = {
-						$type: 'app.bsky.embed.video',
-						video: videoResult.blob,
-						alt: videoResult.altText,
-						...(videoResult.aspectRatio && { aspectRatio: videoResult.aspectRatio }),
-					};
-					
-				} else if (images.length > 0) {
-					// Handle image uploads (existing logic)
-					const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
-					
-					// For each image item
-					for (let i = 0; i < images.length; i++) {
-						const mediaItem: MediaItem = images[i];
-						
-						// Validate media item structure
-						if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
-							continue; // Skip invalid media item
-						}
-						
-						const binaryPropName = mediaItem.media.binaryPropertyName;
-						
-						// Validate binary property exists before trying to upload
-						const inputItem = items[0]; // Always use first item for now
-						if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
-							throw new NodeOperationError(
-								node,
-								`Binary property '${binaryPropName}' not found in input data. ` +
-								`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
-							);
-						}
-						
-						// Access helpers from the passed IExecuteFunctions context
-						const binaryData = await this.helpers.getBinaryDataBuffer(0, binaryPropName);
-						
-						if (!binaryData || !Buffer.isBuffer(binaryData)) {
-							throw new NodeOperationError(node, 
-								`Invalid binary data received from property '${binaryPropName}'. ` +
-								`Expected a Buffer but got ${typeof binaryData}.`
-							);
-						}
-						
-						const uploadResponse = await agent.uploadBlob(binaryData);
-						
-						// Add to our images array
-						imagesForEmbed.push({ 
-							image: uploadResponse.data.blob, 
-							alt: mediaItem.media.altText || '' 
-						});
-					}
-					
-					// If images were uploaded successfully, add them to the post
-					if (imagesForEmbed.length > 0) {
-						postData.embed = {
-							$type: 'app.bsky.embed.images',
-							images: imagesForEmbed,
-						};
-					}
-				}
-			} catch (error) {
-				console.error('[ERROR] Error processing media:', error);
-				throw new NodeOperationError(node, `Failed to process media: ${error.message}`);
-			}
+	// Process media or website card
+	const mediaEmbed = await processMediaItems(this, agent, includeMedia, mediaItemsInput);
+	if (mediaEmbed) {
+		postData.embed = mediaEmbed;
+	} else {
+		const websiteEmbed = await processWebsiteCard(this, agent, websiteCard);
+		if (websiteEmbed) {
+			postData.embed = websiteEmbed;
 		}
-	} else if (websiteCard?.uri) {
-		// Website card handling
-		let thumbBlob: ComAtprotoRepoUploadBlob.OutputSchema['blob'] | undefined = undefined;
-
-		if (websiteCard.thumbnailBinaryProperty) {
-			try {
-				const binaryData = await this.helpers.getBinaryDataBuffer(0, websiteCard.thumbnailBinaryProperty);
-				const uploadResponse = await agent.uploadBlob(binaryData);
-				thumbBlob = uploadResponse.data.blob;
-			} catch (error) {
-				throw new NodeOperationError(node, error, {
-					message: `Failed to upload website card thumbnail from binary property '${websiteCard.thumbnailBinaryProperty}'`,
-				});
-			}
-		}
-
-		if (websiteCard.fetchOpenGraphTags === true) {
-			try {
-				const ogsResponse = await ogs({ url: websiteCard.uri });
-				if (ogsResponse.error || !ogsResponse.result) {
-					throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error || 'No result'}`);
-				}
-				const ogResult = ogsResponse.result;
-				if (ogResult.ogImage && ogResult.ogImage.length > 0 && ogResult.ogImage[0].url) {
-					const imageUrl = ogResult.ogImage[0].url;
-					const imageResponse = await fetch(imageUrl);
-					if (!imageResponse.ok) {
-						throw new Error(`Failed to fetch Open Graph image from ${imageUrl}: ${imageResponse.statusText}`);
-					}
-					const imageArrayBuffer = await imageResponse.arrayBuffer();
-					const imageBuffer = Buffer.from(imageArrayBuffer);
-					const uploadResponse = await agent.uploadBlob(imageBuffer);
-					thumbBlob = uploadResponse.data.blob;
-				}
-				if (ogResult.ogTitle) {
-					websiteCard.title = ogResult.ogTitle;
-				}
-				if (ogResult.ogDescription) {
-					websiteCard.description = ogResult.ogDescription;
-				}
-			} catch (error) {
-				throw new NodeOperationError(node, error, {
-					message: 'Failed to process Open Graph data for website card',
-				});
-			}
-		}
-
-		postData.embed = {
-			$type: 'app.bsky.embed.external',
-			external: {
-				uri: websiteCard.uri,
-				title: websiteCard.title || '',
-				description: websiteCard.description || '',
-				thumb: thumbBlob,
-			},
-		};
 	}
 
 	// Create the post
@@ -671,11 +714,21 @@ export async function deleteRepostOperation(
 }
 
 export async function replyOperation(
+	this: IExecuteFunctions,
 	agent: BskyAgent,
 	replyText: string,
 	langs: string[],
 	parentUri: string,
 	parentCid: string,
+	websiteCard?: {
+		thumbnailBinaryProperty?: string;
+		description: string | undefined;
+		title: string | undefined;
+		uri: string | undefined;
+		fetchOpenGraphTags: boolean | undefined;
+	},
+	includeMedia?: boolean,
+	mediaItemsInput?: { mediaItems?: any[] },
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
@@ -711,6 +764,17 @@ export async function replyOperation(
 			},
 		},
 	};
+
+	// Process media or website card
+	const mediaEmbed = await processMediaItems(this, agent, includeMedia, mediaItemsInput);
+	if (mediaEmbed) {
+		replyData.embed = mediaEmbed;
+	} else {
+		const websiteEmbed = await processWebsiteCard(this, agent, websiteCard);
+		if (websiteEmbed) {
+			replyData.embed = websiteEmbed;
+		}
+	}
 
 	const replyResponse: { uri: string; cid: string } = await agent.post(replyData);
 
