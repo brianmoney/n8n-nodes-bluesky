@@ -3,6 +3,7 @@
 
 import { BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
 import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
+import sizeOf from 'image-size';
 
 // Additional logging function to provide better debug info
 function logDebug(message: string, data?: any): void {
@@ -19,7 +20,7 @@ export async function improvedUploadImageHelper(
   binaryPropertyName: string,
   altText?: string,
   itemIndex: number = 0
-): Promise<{ blob: ComAtprotoRepoUploadBlob.OutputSchema['blob']; altText: string }> {
+): Promise<{ blob: ComAtprotoRepoUploadBlob.OutputSchema['blob']; altText: string; aspectRatio?: { width: number; height: number } }> {
   const node = this.getNode();
   
   try {
@@ -63,6 +64,24 @@ export async function improvedUploadImageHelper(
     
     logDebug(`Successfully retrieved binary data: ${binaryData.length} bytes`);
     
+    // Try to get image dimensions for aspect ratio
+    let aspectRatio: { width: number; height: number } | undefined;
+    try {
+      const dimensions = sizeOf(binaryData);
+      if (dimensions.width && dimensions.height) {
+        aspectRatio = {
+          width: dimensions.width,
+          height: dimensions.height
+        };
+        logDebug(`Image dimensions detected: ${dimensions.width}x${dimensions.height} (aspect ratio: ${aspectRatio.width}:${aspectRatio.height})`);
+      } else {
+        logDebug(`Could not determine image dimensions`);
+      }
+    } catch (error) {
+      logDebug(`Error reading image dimensions: ${error.message}`);
+      // Continue without aspect ratio - not a critical failure
+    }
+
     // Upload the binary data to Bluesky
     logDebug(`Uploading binary data to Bluesky...`);
     const uploadStartTime = Date.now();
@@ -74,6 +93,7 @@ export async function improvedUploadImageHelper(
     return {
       blob: uploadResponse.data.blob,
       altText: altText || '',
+      aspectRatio: aspectRatio,
     };
   } catch (error) {
     logDebug(`Error uploading image: ${error.message}`);

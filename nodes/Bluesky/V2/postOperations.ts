@@ -1,61 +1,26 @@
-import { AtpAgent, RichText, BskyAgent, ComAtprotoRepoUploadBlob } from '@atproto/api';
-import { INodeExecutionData, INodeProperties, NodeOperationError, IExecuteFunctions } from 'n8n-workflow';
+import { AtpAgent, RichText, ComAtprotoRepoUploadBlob } from '@atproto/api';
+import { IExecuteFunctions, INodeExecutionData, INodeProperties, NodeOperationError } from 'n8n-workflow';
 import { getLanguageOptions } from './languages';
 import { uploadVideo } from './videoOperations';
+import { improvedUploadImageHelper } from './binaryUploadHelper';
 import ogs from 'open-graph-scraper';
 
 export const postProperties: INodeProperties[] = [
 	{
 		displayName: 'Operation',
 		default: 'post',
-		displayOptions: {
-			show: {
-				resource: ['post'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'] } },
 		name: 'operation',
 		noDataExpression: true,
 		options: [
-			{
-				name: 'Create a Post',
-				value: 'post',
-				action: 'Create a post',
-			},
-			{
-				name: 'Delete a Post',
-				value: 'deletePost',
-				action: 'Delete a post',
-			},
-			{
-				name: 'Delete Repost',
-				value: 'deleteRepost',
-				action: 'Delete a repost',
-			},
-			{
-				name: 'Like a Post',
-				value: 'like',
-				action: 'Like a post',
-			},
-			{
-				name: 'Quote a Post',
-				value: 'quote',
-				action: 'Quote a post',
-			},
-			{
-				name: 'Reply to a Post',
-				value: 'reply',
-				action: 'Reply to a post',
-			},
-			{
-				name: 'Repost a Post',
-				value: 'repost',
-				action: 'Repost a post',
-			},
-			{
-				name: 'Unline a Post',
-				value: 'deleteLike',
-				action: 'Unlike a post',
-			},
+			{ name: 'Create a Post', value: 'post', action: 'Create a post' },
+			{ name: 'Delete a Post', value: 'deletePost', action: 'Delete a post' },
+			{ name: 'Delete Repost', value: 'deleteRepost', action: 'Delete a repost' },
+			{ name: 'Like a Post', value: 'like', action: 'Like a post' },
+			{ name: 'Quote a Post', value: 'quote', action: 'Quote a post' },
+			{ name: 'Reply to a Post', value: 'reply', action: 'Reply to a post' },
+			{ name: 'Repost a Post', value: 'repost', action: 'Repost a post' },
+			{ name: 'Unline a Post', value: 'deleteLike', action: 'Unlike a post' },
 		],
 		type: 'options',
 	},
@@ -64,12 +29,7 @@ export const postProperties: INodeProperties[] = [
 		name: 'postText',
 		type: 'string',
 		default: '',
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['post'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['post'] } },
 	},
 	{
 		displayName: 'Language Names or IDs',
@@ -79,12 +39,7 @@ export const postProperties: INodeProperties[] = [
 			'Choose from the list of supported languages. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 		options: getLanguageOptions(),
 		default: ['en'],
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['post'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['post'] } },
 	},
 	{
 		displayName: 'Uri',
@@ -94,10 +49,7 @@ export const postProperties: INodeProperties[] = [
 		default: '',
 		required: true,
 		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['deletePost', 'like', 'deleteLike', 'repost', 'reply', 'quote'],
-			},
+			show: { resource: ['post'], operation: ['deletePost', 'like', 'deleteLike', 'repost', 'reply', 'quote'] },
 		},
 	},
 	{
@@ -107,12 +59,7 @@ export const postProperties: INodeProperties[] = [
 		description: 'The CID of the post',
 		default: '',
 		required: true,
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['like', 'repost', 'reply', 'quote'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['like', 'repost', 'reply', 'quote'] } },
 	},
 	{
 		displayName: 'Reply Text',
@@ -121,12 +68,7 @@ export const postProperties: INodeProperties[] = [
 		default: '',
 		required: true,
 		description: 'The text content of your reply',
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['reply'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['reply'] } },
 	},
 	{
 		displayName: 'Reply Languages',
@@ -136,12 +78,7 @@ export const postProperties: INodeProperties[] = [
 			'Choose from the list of supported languages. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 		options: getLanguageOptions(),
 		default: ['en'],
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['reply'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['reply'] } },
 	},
 	{
 		displayName: 'Quote Text',
@@ -150,12 +87,7 @@ export const postProperties: INodeProperties[] = [
 		default: '',
 		required: true,
 		description: 'The text content of your quote post',
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['quote'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['quote'] } },
 	},
 	{
 		displayName: 'Quote Languages',
@@ -165,12 +97,7 @@ export const postProperties: INodeProperties[] = [
 			'Choose from the list of supported languages. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 		options: getLanguageOptions(),
 		default: ['en'],
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['quote'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['quote'] } },
 	},
 	{
 		displayName: 'Website Card',
@@ -183,13 +110,7 @@ export const postProperties: INodeProperties[] = [
 				displayName: 'Details',
 				name: 'details',
 				values: [
-					{
-						displayName: 'URI',
-						name: 'uri',
-						type: 'string',
-						default: '',
-						required: true,
-					},
+					{ displayName: 'URI', name: 'uri', type: 'string', default: '', required: true },
 					{
 						displayName: 'Fetch Open Graph Tags',
 						name: 'fetchOpenGraphTags',
@@ -198,51 +119,20 @@ export const postProperties: INodeProperties[] = [
 						hint: 'If enabled, the node will fetch the open graph tags from the website URL provided and use them to create a website card',
 						default: false,
 					},
-					{
-						displayName: 'Title',
-						name: 'title',
-						type: 'string',
-						default: '',
-						required: true,
-						displayOptions: {
-							show: {
-								fetchOpenGraphTags: [false],
-							},
-						}
-					},
-					{
-						displayName: 'Description',
-						name: 'description',
-						type: 'string',
-						default: '',
-						displayOptions: {
-							show: {
-								fetchOpenGraphTags: [false],
-							},
-						}
-					},
+					{ displayName: 'Title', name: 'title', type: 'string', default: '', required: true, displayOptions: { show: { fetchOpenGraphTags: [false] } } },
+					{ displayName: 'Description', name: 'description', type: 'string', default: '', displayOptions: { show: { fetchOpenGraphTags: [false] } } },
 					{
 						displayName: 'Binary Property',
 						name: 'thumbnailBinaryProperty',
 						type: 'string',
 						default: 'data',
 						description: 'Name of the binary property containing the thumbnail image',
-						displayOptions: {
-							show: {
-								fetchOpenGraphTags: [false],
-							},
-						}
+						displayOptions: { show: { fetchOpenGraphTags: [false] } },
 					},
 				],
 			},
 		],
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['post', 'reply'],
-				includeMedia: [false], // Hide if includeMedia is true
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['post', 'reply'], includeMedia: [false] } },
 	},
 	{
 		displayName: 'Include Media',
@@ -250,12 +140,7 @@ export const postProperties: INodeProperties[] = [
 		type: 'boolean',
 		default: false,
 		description: 'Whether to include media in the post',
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['post', 'reply'],
-			},
-		},
+		displayOptions: { show: { resource: ['post'], operation: ['post', 'reply'] } },
 	},
 	{
 		displayName: 'Media Items',
@@ -263,18 +148,8 @@ export const postProperties: INodeProperties[] = [
 		type: 'fixedCollection',
 		default: {},
 		placeholder: 'Add Media Item',
-		typeOptions: {
-			multiple: true,
-			multipleValueButtonText: 'Add Media',
-			sortable: true,
-		},
-		displayOptions: {
-			show: {
-				resource: ['post'],
-				operation: ['post', 'reply'],
-				includeMedia: [true],
-			},
-		},
+		typeOptions: { multiple: true, multipleValueButtonText: 'Add Media', sortable: true },
+		displayOptions: { show: { resource: ['post'], operation: ['post', 'reply'], includeMedia: [true] } },
 		options: [
 			{
 				displayName: 'Media',
@@ -284,16 +159,7 @@ export const postProperties: INodeProperties[] = [
 						displayName: 'Media Type',
 						name: 'mediaType',
 						type: 'options',
-						options: [
-							{
-								name: 'Image',
-								value: 'image',
-							},
-							{
-								name: 'Video',
-								value: 'video',
-							},
-						],
+						options: [ { name: 'Image', value: 'image' }, { name: 'Video', value: 'video' } ],
 						default: 'image',
 						required: true,
 						description: 'Type of media to upload',
@@ -306,523 +172,203 @@ export const postProperties: INodeProperties[] = [
 						required: true,
 						description: 'Name of the binary property containing the media data. For images: max 4 items. For videos: max 1 item per post.',
 					},
-					{
-						displayName: 'Alt Text',
-						name: 'altText',
-						type: 'string',
-						default: '',
-						description: 'Alt text for accessibility (max 1000 characters for images, max 1000 characters for videos)',
-					},
+					{ displayName: 'Alt Text', name: 'altText', type: 'string', default: '', description: 'Alt text for accessibility (max 1000 characters for images, max 1000 characters for videos)' },
 				],
 			},
 		],
 	},
 ];
 
-// Helper types for the post function
-// Helper type for mediaItems
-interface MediaItem {
-	media: {
-		mediaType: 'image' | 'video';
-		binaryPropertyName: string;
-		altText?: string;
-	};
-}
+interface MediaItem { media: { mediaType?: 'image' | 'video'; binaryPropertyName: string; altText?: string } }
 
-// Reusable function for processing media items
-async function processMediaItems(
+async function buildMediaEmbed(
 	context: IExecuteFunctions,
-	agent: BskyAgent,
-	includeMedia: boolean | undefined,
-	mediaItemsInput: { mediaItems?: any[] } | undefined,
+		agent: AtpAgent,
+	includeMedia?: boolean,
+	mediaItemsInput?: { mediaItems?: any[] },
 ): Promise<any | undefined> {
+	if (includeMedia !== true) return undefined;
+	if (!mediaItemsInput || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) return undefined;
+
 	const node = context.getNode();
-	
-	if (includeMedia !== true) {
-		return undefined;
-	}
-	
-	// Make sure we have valid media items to process
-	if (!mediaItemsInput || !mediaItemsInput.mediaItems || !Array.isArray(mediaItemsInput.mediaItems) || mediaItemsInput.mediaItems.length === 0) {
-		return undefined; // No valid media items found
-	}
-	
-	// Valid media items available - separate images and videos
+	const items = context.getInputData();
+	if (!items || items.length === 0) throw new NodeOperationError(node, 'No input items available');
+
 	const images: MediaItem[] = [];
 	const videos: MediaItem[] = [];
-	
-	console.log(`[DEBUG] Processing ${mediaItemsInput.mediaItems.length} media items`);
-	
-	// Check if we have access to binary data
-	const items = context.getInputData();
-	if (!items || items.length === 0) {
-		throw new NodeOperationError(node, 'No input items available');
-	}
-	
 	for (const item of mediaItemsInput.mediaItems) {
-		console.log(`[DEBUG] Media item:`, JSON.stringify(item, null, 2));
-		console.log(`[DEBUG] Media type detected:`, item?.media?.mediaType);
-		
-		// Try to auto-detect media type from binary data if not explicitly set
-		let mediaType = item?.media?.mediaType;
-		if (!mediaType || mediaType === 'image') {
-			// Check if we can detect from MIME type
-			const binaryPropName = item?.media?.binaryPropertyName;
-			if (binaryPropName) {
-				try {
-					const inputItem = items[0];
-					if (inputItem?.binary?.[binaryPropName]?.mimeType) {
-						const mimeType = inputItem.binary[binaryPropName].mimeType;
-						console.log(`[DEBUG] Detected MIME type: ${mimeType}`);
-						if (mimeType.startsWith('video/')) {
-							console.log(`[DEBUG] Auto-detected video based on MIME type`);
-							mediaType = 'video';
-						}
-					}
-				} catch (error) {
-					console.log(`[DEBUG] Could not auto-detect media type: ${error.message}`);
-				}
-			}
+		let mediaType = item?.media?.mediaType as 'image' | 'video' | undefined;
+		const binaryPropName = item?.media?.binaryPropertyName as string | undefined;
+		if ((!mediaType || mediaType === 'image') && binaryPropName) {
+			try {
+				const mimeType = items[0]?.binary?.[binaryPropName]?.mimeType as string | undefined;
+				if (mimeType?.startsWith('video/')) mediaType = 'video';
+			} catch {}
 		}
-		
-		if (mediaType === 'video') {
-			console.log(`[DEBUG] Adding item as video`);
-			videos.push(item);
-		} else {
-			console.log(`[DEBUG] Adding item as image (default)`);
-			// Default to image for backwards compatibility
-			images.push(item);
+		if (mediaType === 'video') videos.push(item); else images.push(item);
+	}
+
+	if (images.length > 4) throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
+	if (videos.length > 1) throw new NodeOperationError(node, 'Cannot attach more than 1 video to a post.');
+	if (videos.length > 0 && images.length > 0) throw new NodeOperationError(node, 'Cannot mix images and videos in the same post. Choose either images OR a video.');
+
+	if (videos.length > 0) {
+		const videoItem = videos[0];
+		const binaryPropName = videoItem.media.binaryPropertyName;
+		const inputItem = items[0];
+		if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
+			throw new NodeOperationError(node, `Binary property '${binaryPropName}' not found in input data. ` + `Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`);
 		}
+		const videoResult = await uploadVideo.call(context, agent, binaryPropName, videoItem.media.altText);
+		return { $type: 'app.bsky.embed.video', video: videoResult.blob, alt: videoResult.altText, ...(videoResult.aspectRatio && { aspectRatio: videoResult.aspectRatio }) };
 	}
-	
-	// Validate media constraints
-	if (images.length > 4) {
-		throw new NodeOperationError(node, 'Cannot attach more than 4 images to a post.');
-	}
-	if (videos.length > 1) {
-		throw new NodeOperationError(node, 'Cannot attach more than 1 video to a post.');
-	}
-	if (videos.length > 0 && images.length > 0) {
-		throw new NodeOperationError(node, 'Cannot mix images and videos in the same post. Choose either images OR a video.');
-	}
-	
-	try {
-		if (videos.length > 0) {
-			// Handle video upload
-			const videoItem = videos[0];
-			const binaryPropName = videoItem.media.binaryPropertyName;
-			
-			// Validate binary property exists
+
+	if (images.length > 0) {
+		const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string; aspectRatio?: { width: number; height: number } }[] = [];
+		for (const mediaItem of images) {
+			const binaryPropName = mediaItem?.media?.binaryPropertyName;
+			if (!binaryPropName) continue;
 			const inputItem = items[0];
 			if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
-				throw new NodeOperationError(
-					node,
-					`Binary property '${binaryPropName}' not found in input data. ` +
-					`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
-				);
+				throw new NodeOperationError(node, `Binary property '${binaryPropName}' not found in input data. ` + `Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`);
 			}
-			
-			console.log(`[INFO] Processing video upload from binary property: ${binaryPropName}`);
-			
-			// Upload video
-			const videoResult = await uploadVideo.call(context, agent, binaryPropName, videoItem.media.altText);
-			
-			// Return video embed
-			return {
-				$type: 'app.bsky.embed.video',
-				video: videoResult.blob,
-				alt: videoResult.altText,
-				...(videoResult.aspectRatio && { aspectRatio: videoResult.aspectRatio }),
-			};
-			
-		} else if (images.length > 0) {
-			// Handle image uploads
-			const imagesForEmbed: { image: ComAtprotoRepoUploadBlob.OutputSchema['blob']; alt: string }[] = [];
-			
-			// For each image item
-			for (let i = 0; i < images.length; i++) {
-				const mediaItem: MediaItem = images[i];
-				
-				// Validate media item structure
-				if (!mediaItem || !mediaItem.media || !mediaItem.media.binaryPropertyName) {
-					continue; // Skip invalid media item
-				}
-				
-				const binaryPropName = mediaItem.media.binaryPropertyName;
-				
-				// Validate binary property exists before trying to upload
-				const inputItem = items[0]; // Always use first item for now
-				if (!inputItem?.binary || !inputItem.binary[binaryPropName]) {
-					throw new NodeOperationError(
-						node,
-						`Binary property '${binaryPropName}' not found in input data. ` +
-						`Available properties: ${Object.keys(inputItem?.binary || {}).join(', ') || 'none'}`
-					);
-				}
-				
-				// Access helpers from the passed IExecuteFunctions context
-				const binaryData = await context.helpers.getBinaryDataBuffer(0, binaryPropName);
-				
-				if (!binaryData || !Buffer.isBuffer(binaryData)) {
-					throw new NodeOperationError(node, 
-						`Invalid binary data received from property '${binaryPropName}'. ` +
-						`Expected a Buffer but got ${typeof binaryData}.`
-					);
-				}
-				
-				const uploadResponse = await agent.uploadBlob(binaryData);
-				
-				// Add to our images array
-				imagesForEmbed.push({ 
-					image: uploadResponse.data.blob, 
-					alt: mediaItem.media.altText || '' 
-				});
-			}
-			
-			// If images were uploaded successfully, return the embed
-			if (imagesForEmbed.length > 0) {
-				return {
-					$type: 'app.bsky.embed.images',
-					images: imagesForEmbed,
-				};
-			}
+			const uploadResult = await improvedUploadImageHelper.call(context, agent, binaryPropName, mediaItem.media.altText, 0);
+			imagesForEmbed.push({ image: uploadResult.blob, alt: uploadResult.altText, ...(uploadResult.aspectRatio && { aspectRatio: uploadResult.aspectRatio }) });
 		}
-	} catch (error) {
-		console.error('[ERROR] Error processing media:', error);
-		throw new NodeOperationError(node, `Failed to process media: ${error.message}`);
+		if (imagesForEmbed.length > 0) return { $type: 'app.bsky.embed.images', images: imagesForEmbed };
 	}
-	
+
 	return undefined;
 }
 
-// Reusable function for processing website cards
-async function processWebsiteCard(
+async function buildWebsiteCardEmbed(
 	context: IExecuteFunctions,
-	agent: BskyAgent,
-	websiteCard: {
-		thumbnailBinaryProperty?: string;
-		description: string | undefined;
-		title: string | undefined;
-		uri: string | undefined;
-		fetchOpenGraphTags: boolean | undefined;
-	} | undefined,
+		agent: AtpAgent,
+	websiteCard?: { thumbnailBinaryProperty?: string; description?: string; title?: string; uri?: string; fetchOpenGraphTags?: boolean },
 ): Promise<any | undefined> {
+	if (!websiteCard?.uri) return undefined;
 	const node = context.getNode();
-	
-	if (!websiteCard?.uri) {
-		return undefined;
-	}
-	
-	// Website card handling
 	let thumbBlob: ComAtprotoRepoUploadBlob.OutputSchema['blob'] | undefined = undefined;
-
 	if (websiteCard.thumbnailBinaryProperty) {
 		try {
 			const binaryData = await context.helpers.getBinaryDataBuffer(0, websiteCard.thumbnailBinaryProperty);
 			const uploadResponse = await agent.uploadBlob(binaryData);
 			thumbBlob = uploadResponse.data.blob;
-		} catch (error) {
-			throw new NodeOperationError(node, error, {
-				message: `Failed to upload website card thumbnail from binary property '${websiteCard.thumbnailBinaryProperty}'`,
-			});
+		} catch (error: any) {
+			throw new NodeOperationError(node, error, { message: `Failed to upload website card thumbnail from binary property '${websiteCard.thumbnailBinaryProperty}'` });
 		}
 	}
-
 	if (websiteCard.fetchOpenGraphTags === true) {
 		try {
 			const ogsResponse = await ogs({ url: websiteCard.uri });
-			if (ogsResponse.error || !ogsResponse.result) {
-				throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error || 'No result'}`);
-			}
-			const ogResult = ogsResponse.result;
+			if (ogsResponse.error || !ogsResponse.result) throw new Error(`Error fetching Open Graph tags: ${ogsResponse.error || 'No result'}`);
+			const ogResult: any = ogsResponse.result;
 			if (ogResult.ogImage && ogResult.ogImage.length > 0 && ogResult.ogImage[0].url) {
-				const imageUrl = ogResult.ogImage[0].url;
+				const imageUrl = ogResult.ogImage[0].url as string;
 				const imageResponse = await fetch(imageUrl);
-				if (!imageResponse.ok) {
-					throw new Error(`Failed to fetch Open Graph image from ${imageUrl}: ${imageResponse.statusText}`);
-				}
+				if (!imageResponse.ok) throw new Error(`Failed to fetch Open Graph image from ${imageUrl}: ${imageResponse.statusText}`);
 				const imageArrayBuffer = await imageResponse.arrayBuffer();
 				const imageBuffer = Buffer.from(imageArrayBuffer);
 				const uploadResponse = await agent.uploadBlob(imageBuffer);
 				thumbBlob = uploadResponse.data.blob;
 			}
-			if (ogResult.ogTitle) {
-				websiteCard.title = ogResult.ogTitle;
-			}
-			if (ogResult.ogDescription) {
-				websiteCard.description = ogResult.ogDescription;
-			}
-		} catch (error) {
-			throw new NodeOperationError(node, error, {
-				message: 'Failed to process Open Graph data for website card',
-			});
+			if (ogResult.ogTitle) websiteCard.title = ogResult.ogTitle as string;
+			if (ogResult.ogDescription) websiteCard.description = ogResult.ogDescription as string;
+		} catch (error: any) {
+			throw new NodeOperationError(node, error, { message: 'Failed to process Open Graph data for website card' });
 		}
 	}
-
-	return {
-		$type: 'app.bsky.embed.external',
-		external: {
-			uri: websiteCard.uri,
-			title: websiteCard.title || '',
-			description: websiteCard.description || '',
-			thumb: thumbBlob,
-		},
-	};
+	return { $type: 'app.bsky.embed.external', external: { uri: websiteCard.uri, title: websiteCard.title || '', description: websiteCard.description || '', thumb: thumbBlob } };
 }
 
 export async function postOperation(
-	this: IExecuteFunctions, // 'this' is the IExecuteFunctions context
-	agent: BskyAgent,
+	this: IExecuteFunctions,
+		agent: AtpAgent,
 	postText: string,
 	langs: string[],
-	websiteCard?: {
-		thumbnailBinaryProperty?: string;
-		description: string | undefined;
-		title: string | undefined;
-		uri: string | undefined;
-		fetchOpenGraphTags: boolean | undefined;
-	},
+	websiteCard?: { thumbnailBinaryProperty?: string; description?: string; title?: string; uri?: string; fetchOpenGraphTags?: boolean },
 	includeMedia?: boolean,
 	mediaItemsInput?: { mediaItems?: any[] },
 ): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-	const node = this.getNode();
-
-	let rt = new RichText({ text: postText });
-	await rt.detectFacets(agent as AtpAgent); // BskyAgent extends AtpAgent
-
-	const postData: any = {
-		$type: 'app.bsky.feed.post',
-		text: rt.text,
-		langs: langs,
-		facets: rt.facets,
-		createdAt: new Date().toISOString(),
-	};
-
-	// Process media or website card
-	const mediaEmbed = await processMediaItems(this, agent, includeMedia, mediaItemsInput);
-	if (mediaEmbed) {
-		postData.embed = mediaEmbed;
-	} else {
-		const websiteEmbed = await processWebsiteCard(this, agent, websiteCard);
-		if (websiteEmbed) {
-			postData.embed = websiteEmbed;
-		}
+	const rt = new RichText({ text: postText });
+	await rt.detectFacets(agent as AtpAgent);
+	const postData: any = { $type: 'app.bsky.feed.post', text: rt.text, langs, facets: rt.facets, createdAt: new Date().toISOString() };
+	const mediaEmbed = await buildMediaEmbed(this, agent, includeMedia, mediaItemsInput);
+	if (mediaEmbed) postData.embed = mediaEmbed; else {
+		const websiteEmbed = await buildWebsiteCardEmbed(this, agent, websiteCard);
+		if (websiteEmbed) postData.embed = websiteEmbed;
 	}
-
-	// Create the post
 	const postResponse: { uri: string; cid: string } = await agent.post(postData);
-
-	returnData.push({
-		json: {
-			uri: postResponse.uri,
-			cid: postResponse.cid,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri: postResponse.uri, cid: postResponse.cid } }];
 }
 
 export async function deletePostOperation(agent: AtpAgent, uri: string): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-	await agent.deletePost(uri)
-
-	returnData.push({
-		json: {
-			uri: uri,
-		},
-	});
-
-	return returnData;
+	await agent.deletePost(uri);
+	return [{ json: { uri } }];
 }
 
-export async function likeOperation(
-	agent: AtpAgent,
-	uri: string,
-	cid: string,
-): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	// https://docs.bsky.app/docs/tutorials/like-repost#liking-a-post
+export async function likeOperation(agent: AtpAgent, uri: string, cid: string): Promise<INodeExecutionData[]> {
 	const likeResponse: { uri: string; cid: string } = await agent.like(uri, cid);
-
-	returnData.push({
-		json: {
-			uri: likeResponse.uri,
-			cid: likeResponse.cid,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri: likeResponse.uri, cid: likeResponse.cid } }];
 }
 
-export async function deleteLikeOperation(
-	agent: AtpAgent,
-	uri: string,
-): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	// no response from deleteLike
-	// https://docs.bsky.app/docs/tutorials/like-repost#unliking-a-post
+export async function deleteLikeOperation(agent: AtpAgent, uri: string): Promise<INodeExecutionData[]> {
 	await agent.deleteLike(uri);
-
-	returnData.push({
-		json: {
-			uri: uri,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri } }];
 }
 
-export async function repostOperation(
-	agent: AtpAgent,
-	uri: string,
-	cid: string,
-): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	// https://docs.bsky.app/docs/tutorials/like-repost#quote-reposting
+export async function repostOperation(agent: AtpAgent, uri: string, cid: string): Promise<INodeExecutionData[]> {
 	const repostResult: { uri: string; cid: string } = await agent.repost(uri, cid);
-
-	returnData.push({
-		json: {
-			uri: repostResult.uri,
-			cid: repostResult.cid,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri: repostResult.uri, cid: repostResult.cid } }];
 }
 
-export async function deleteRepostOperation(
-	agent: AtpAgent,
-	uri: string,
-): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	// no response from deleteRepost
+export async function deleteRepostOperation(agent: AtpAgent, uri: string): Promise<INodeExecutionData[]> {
 	await agent.deleteRepost(uri);
-
-	returnData.push({
-		json: {
-			uri: uri,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri } }];
 }
 
 export async function replyOperation(
 	this: IExecuteFunctions,
-	agent: BskyAgent,
+	agent: AtpAgent,
 	replyText: string,
 	langs: string[],
 	parentUri: string,
 	parentCid: string,
-	websiteCard?: {
-		thumbnailBinaryProperty?: string;
-		description: string | undefined;
-		title: string | undefined;
-		uri: string | undefined;
-		fetchOpenGraphTags: boolean | undefined;
-	},
+	websiteCard?: { thumbnailBinaryProperty?: string; description?: string; title?: string; uri?: string; fetchOpenGraphTags?: boolean },
 	includeMedia?: boolean,
 	mediaItemsInput?: { mediaItems?: any[] },
 ): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	let rt = new RichText({ text: replyText });
+	const rt = new RichText({ text: replyText });
 	await rt.detectFacets(agent as AtpAgent);
-
-	// Get the parent post to find the root of the thread
 	const parentThreadResponse = await agent.getPostThread({ uri: parentUri });
-	
-	// Extract the root from the thread - if parent is part of a thread, use its root
-	let root = { uri: parentUri, cid: parentCid };
+	let root = { uri: parentUri, cid: parentCid } as { uri: string; cid: string };
 	if (parentThreadResponse.data.thread && 'post' in parentThreadResponse.data.thread) {
-		const threadPost = parentThreadResponse.data.thread.post;
+		const threadPost: any = (parentThreadResponse.data as any).thread.post;
 		if (threadPost.record && typeof threadPost.record === 'object' && 'reply' in threadPost.record) {
 			const replyRecord = threadPost.record.reply as any;
-			if (replyRecord?.root) {
-				root = replyRecord.root;
-			}
+			if (replyRecord?.root) root = replyRecord.root;
 		}
 	}
-
-	const replyData = {
-		$type: 'app.bsky.feed.post' as const,
-		text: rt.text,
-		langs: langs,
-		facets: rt.facets,
-		createdAt: new Date().toISOString(),
-		reply: {
-			root: root,
-			parent: {
-				uri: parentUri,
-				cid: parentCid,
-			},
-		},
-	};
-
-	// Process media or website card
-	const mediaEmbed = await processMediaItems(this, agent, includeMedia, mediaItemsInput);
-	if (mediaEmbed) {
-		replyData.embed = mediaEmbed;
-	} else {
-		const websiteEmbed = await processWebsiteCard(this, agent, websiteCard);
-		if (websiteEmbed) {
-			replyData.embed = websiteEmbed;
-		}
+	const replyData: any = { $type: 'app.bsky.feed.post', text: rt.text, langs, facets: rt.facets, createdAt: new Date().toISOString(), reply: { root, parent: { uri: parentUri, cid: parentCid } } };
+	const mediaEmbed = await buildMediaEmbed(this, agent, includeMedia, mediaItemsInput);
+	if (mediaEmbed) replyData.embed = mediaEmbed; else {
+		const websiteEmbed = await buildWebsiteCardEmbed(this, agent, websiteCard);
+		if (websiteEmbed) replyData.embed = websiteEmbed;
 	}
-
 	const replyResponse: { uri: string; cid: string } = await agent.post(replyData);
-
-	returnData.push({
-		json: {
-			uri: replyResponse.uri,
-			cid: replyResponse.cid,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri: replyResponse.uri, cid: replyResponse.cid } }];
 }
 
 export async function quoteOperation(
-	agent: BskyAgent,
+	agent: AtpAgent,
 	quoteText: string,
 	langs: string[],
 	quotedUri: string,
 	quotedCid: string,
 ): Promise<INodeExecutionData[]> {
-	const returnData: INodeExecutionData[] = [];
-
-	let rt = new RichText({ text: quoteText });
+	const rt = new RichText({ text: quoteText });
 	await rt.detectFacets(agent as AtpAgent);
-
-	const quoteData = {
-		$type: 'app.bsky.feed.post' as const,
-		text: rt.text,
-		langs: langs,
-		facets: rt.facets,
-		createdAt: new Date().toISOString(),
-		embed: {
-			$type: 'app.bsky.embed.record' as const,
-			record: {
-				uri: quotedUri,
-				cid: quotedCid,
-			},
-		},
-	};
-
+	const quoteData = { $type: 'app.bsky.feed.post' as const, text: rt.text, langs, facets: rt.facets, createdAt: new Date().toISOString(), embed: { $type: 'app.bsky.embed.record' as const, record: { uri: quotedUri, cid: quotedCid } } };
 	const quoteResponse: { uri: string; cid: string } = await agent.post(quoteData);
-
-	returnData.push({
-		json: {
-			uri: quoteResponse.uri,
-			cid: quoteResponse.cid,
-		},
-	});
-
-	return returnData;
+	return [{ json: { uri: quoteResponse.uri, cid: quoteResponse.cid } }];
 }

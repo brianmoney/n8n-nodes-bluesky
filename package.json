@@ -1,11 +1,11 @@
 {
   "name": "n8n-nodes-bluesky-enhanced",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Enhanced BlueSky API nodes for n8n with list management, follower/follows pagination, search functionality, media posting, thread management, reply/quote operations, and analytics features",
   "keywords": [
     "n8n-community-node-package",
     "bluesky",
-    "atproto", 
+    "atproto",
     "followers",
     "follows",
     "lists",
@@ -13,7 +13,7 @@
     "content-curation",
     "social-network",
     "search",
-    "user-search", 
+    "user-search",
     "post-search",
     "analytics",
     "notifications",
@@ -82,6 +82,8 @@
   "dependencies": {
     "@atproto/api": "^0.15.8",
     "@atproto/syntax": "^0.4.0",
+    "@types/image-size": "^0.8.0",
+    "image-size": "^1.2.1",
     "open-graph-scraper": "^6.8.2"
   }
 }
