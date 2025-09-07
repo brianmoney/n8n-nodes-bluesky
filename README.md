@@ -236,3 +236,9 @@ MIT
 ## Acknowledgments
 
 This project is based on [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/n8n-nodes-bluesky) by Christian Münch.
+
+## Quick local dev with @n8n/node-cli
+
+- pnpm install
+- pnpm dev
+- Open http://localhost:5678 and test the node (hot reload)
