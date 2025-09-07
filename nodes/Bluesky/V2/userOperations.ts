@@ -104,25 +104,11 @@ export const userProperties: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
-		description: 'Handle or DID of the actor whose followers to fetch',
+		description: 'Handle or DID of the actor',
 		displayOptions: {
 			show: {
 				resource: ['user'],
-				operation: ['listAllFollowers'],
-			},
-		},
-	},
-	{
-		displayName: 'Handle',
-		name: 'handle',
-		type: 'string',
-		default: '',
-		required: true,
-		description: 'Handle or DID of the actor whose follows to fetch',
-		displayOptions: {
-			show: {
-				resource: ['user'],
-				operation: ['listAllFollows'],
+				operation: ['listAllFollowers', 'listAllFollows'],
 			},
 		},
 	},
@@ -131,30 +117,14 @@ export const userProperties: INodeProperties[] = [
 		name: 'maxResults',
 		type: 'number',
 		default: 1000,
-		description: 'Maximum number of followers to fetch (default: 1000)',
+		description: 'Maximum number of results to fetch (default: 1000)',
 		typeOptions: {
 			minValue: 1,
 		},
 		displayOptions: {
 			show: {
 				resource: ['user'],
-				operation: ['listAllFollowers'],
-			},
-		},
-	},
-	{
-		displayName: 'Max Results',
-		name: 'maxResults',
-		type: 'number',
-		default: 1000,
-		description: 'Maximum number of follows to fetch (default: 1000)',
-		typeOptions: {
-			minValue: 1,
-		},
-		displayOptions: {
-			show: {
-				resource: ['user'],
-				operation: ['listAllFollows'],
+				operation: ['listAllFollowers', 'listAllFollows'],
 			},
 		},
 	},
@@ -163,7 +133,7 @@ export const userProperties: INodeProperties[] = [
 		name: 'pageSize',
 		type: 'number',
 		default: 100,
-		description: 'Number of followers to fetch per request (default: 100, max: 100)',
+		description: 'Number of results to fetch per request (default: 100, max: 100)',
 		typeOptions: {
 			minValue: 1,
 			maxValue: 100,
@@ -171,24 +141,7 @@ export const userProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['user'],
-				operation: ['listAllFollowers'],
-			},
-		},
-	},
-	{
-		displayName: 'Page Size',
-		name: 'pageSize',
-		type: 'number',
-		default: 100,
-		description: 'Number of follows to fetch per request (default: 100, max: 100)',
-		typeOptions: {
-			minValue: 1,
-			maxValue: 100,
-		},
-		displayOptions: {
-			show: {
-				resource: ['user'],
-				operation: ['listAllFollows'],
+				operation: ['listAllFollowers', 'listAllFollows'],
 			},
 		},
 	},

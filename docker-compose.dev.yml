@@ -1,0 +1,21 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-dev
+    ports:
+      - "5679:5678"
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_LOG_LEVEL=debug
+      - N8N_USER_FOLDER=/home/node/.n8n
+    volumes:
+      - n8n_data_dev:/home/node/.n8n
+      - ./dist:/home/node/.n8n/custom/n8n-nodes-bluesky-enhanced/dist:ro
+      - ./package.json:/home/node/.n8n/custom/n8n-nodes-bluesky-enhanced/package.json:ro
+      - ./index.js:/home/node/.n8n/custom/n8n-nodes-bluesky-enhanced/index.js:ro
+    restart: unless-stopped
+
+volumes:
+  n8n_data_dev:
+    driver: local

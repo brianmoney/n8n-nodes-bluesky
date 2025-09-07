@@ -5,7 +5,9 @@ export class BlueskyApi implements ICredentialType {
 	displayName = 'Bluesky API';
 	name = 'blueskyApi';
 	documentationUrl = 'https://bsky.app/settings/app-passwords';
-	icon = 'node:n8n-nodes-bluesky-enhanced.bluesky' as Icon;
+	// Use a file-based icon that exists after build at dist/nodes/Bluesky/bluesky.svg
+	// Relative to this credentials file, go up to nodes/Bluesky
+	icon = 'file:../nodes/Bluesky/bluesky.svg' as Icon;
 
 	properties: INodeProperties[] = [
 		{

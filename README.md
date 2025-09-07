@@ -7,8 +7,8 @@ This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/
 ## Key Features
 
 - **User Management**: Follow/follower operations with pagination, profile management, muting/blocking
-- **Advanced Posting**: Create posts with media attachments (images/video), replies, quotes, and website cards
-- **Media Support**: Image uploads (fully functional) and video uploads (limited - see Video Uploads section)
+- **Advanced Posting**: Create posts with media attachments (images/video), replies, quotes, and website cards (including in replies)
+- **Media Support**: Image uploads (with automatic aspect ratio) and video uploads (limited - see Video Uploads section)
 - **Feed Operations**: Retrieve author feeds with filtering, timelines, and thread contexts
 - **Search Capabilities**: Search users and posts with filtering options
 - **Analytics & Notifications**: Enhanced notification management with filtering and interaction tracking
@@ -21,6 +21,12 @@ npm install n8n-nodes-bluesky-enhanced
 ```
 
 In n8n community edition, you can install the nodes in the settings page by searching for `n8n-nodes-bluesky-enhanced`.
+
+Alternatively, to deploy into a self-hosted n8n volume, this repo includes an `install.sh` script which:
+- Builds the project and copies `dist/` plus a minimal package.json and `index.js` to your custom modules directory
+- Installs only production dependencies, avoiding pnpm friction in containers
+
+Edit `install.sh`'s DEST path to your n8n custom modules folder and run it.
 
 ## Supported Operations
 
@@ -41,8 +47,8 @@ In n8n community edition, you can install the nodes in the settings page by sear
 - **Delete Post** - Remove your own posts
 
 **Media Support:**
-- **Images**: Fully functional (up to 4 images per post)
-- **Video**: Limited functionality (uploads succeed but videos don't display - see Video Uploads section)
+- **Images**: Fully functional (up to 4 images per post). Image embeds now include per-image `aspectRatio` automatically detected from the binary (improves display consistency on Bluesky).
+- **Video**: Limited functionality (uploads succeed but videos don't display - see Video Uploads section). Video embeds include `aspectRatio` when available.
 
 ### Feed Operations
 - **Get Author Feed** - Retrieve posts from specific users with filtering options
@@ -146,6 +152,9 @@ List operations support automatic pagination and handle large lists efficiently.
   - **Binary Property**: Name of n8n binary property containing image data
   - **Alt Text**: Accessibility description for images
 
+Aspect Ratio Handling:
+- Each image's aspect ratio is auto-detected from the binary and sent as `{ width, height }` so images render correctly in Bluesky clients.
+
 When media is included, website card options are automatically disabled.
 
 ### Video Uploads
@@ -160,7 +169,7 @@ Video uploads are technically supported but have significant limitations due to 
   - **Binary Property**: Name of n8n binary property containing video data
   - **Alt Text**: Accessibility description for the video
 
-**Important Limitations (as of May 25, 2025):**
+**Important Limitations (as of Sep 5, 2025):**
 - ✅ **Video uploads succeed** - Files upload without errors
 - ❌ **Videos don't display** - Show "Video not found" on Bluesky platform
 - ❌ **No video processing** - No thumbnails, playlists, or streaming support
@@ -181,6 +190,15 @@ Bluesky's video infrastructure requires server-side processing to generate strea
 
 For detailed technical analysis, see [VIDEO_STATUS_REPORT.md](VIDEO_STATUS_REPORT.md).
 
+### Website Cards (External Embeds)
+
+You can attach a website card to posts and replies when no media is included:
+- **URI**: Target URL
+- **Fetch Open Graph Tags**: If enabled, the node fetches OG tags (title, description, and image) and uploads the image as a thumbnail
+- Or specify Title, Description, and a binary thumbnail property manually
+
+Note: Website card options are hidden when Include Media is enabled.
+
 
 ## Use Cases
 
@@ -200,6 +218,12 @@ This enhanced Bluesky node is perfect for:
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes for each version.
+
+Highlights in v1.6.x:
+- Automatic aspect ratio detection for images and inclusion in embeds
+- Support `Include Media` and `Media Items` for replies (images/video)
+- Website cards in posts and replies with optional Open Graph fetch and thumbnail upload
+- Packaging fixes: ensure `index.js` exports the built node; add `install.sh` for container-friendly deploys
 
 ## Repository
 

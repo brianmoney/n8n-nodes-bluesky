@@ -43,7 +43,7 @@ export const searchProperties: INodeProperties[] = [
 			},
 		},
 	},
-	// User search specific parameters
+		// Common limit parameter
 	{
 		displayName: 'Limit',
 		name: 'limit',
@@ -56,24 +56,7 @@ export const searchProperties: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['search'],
-				operation: ['searchUsers'],
-			},
-		},
-	},
-	// Post search specific parameters
-	{
-		displayName: 'Limit',
-		name: 'limit',
-		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: {
-			minValue: 1,
-		},
-		displayOptions: {
-			show: {
-				resource: ['search'],
-				operation: ['searchPosts'],
+				operation: ['searchUsers', 'searchPosts'],
 			},
 		},
 	},

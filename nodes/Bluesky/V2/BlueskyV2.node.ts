@@ -607,7 +607,7 @@ export class BlueskyV2 implements INodeType {
 					returnData.push(...blockData);
 					break;
 
-								case 'unblock':
+				case 'unblock':
 					const uriUnblock = this.getNodeParameter('uri', i) as string;
 					const unblockData = await unblockOperation(agent, uriUnblock);
 					returnData.push(...unblockData);
@@ -672,17 +672,18 @@ export class BlueskyV2 implements INodeType {
 						this.getNode(),
 						`The operation "${operation}" is not supported for resource "${resource}"!`
 					);
+				}
+				continue; // Skip the rest of the loop for these resource operations
 			}
-			continue; // Skip the rest of the loop for these resource operations
+
+			// If we reach here, the resource is not supported for the current item
+			throw new NodeOperationError(
+				this.getNode(),
+				`The resource "${resource}" is not supported!`,
+				{ itemIndex: i },
+			);
 		}
 
-		// If we reach here, the resource is not supported
-		throw new NodeOperationError(
-			this.getNode(),
-			`The resource "${resource}" is not supported!`
-		);
+		return this.prepareOutputData(returnData);
 	}
-
-	return [returnData];
-}
 }

@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+ARG N8N_IMAGE=n8nio/n8n:latest
+FROM ${N8N_IMAGE}
+
+ARG N8N_USER_FOLDER=/home/node/.n8n
+ENV N8N_USER_FOLDER=${N8N_USER_FOLDER}
+
+# Create target dirs and copy the built package (dist and index.js) from local workspace
+USER root
+RUN mkdir -p ${N8N_USER_FOLDER}/custom/n8n-nodes-bluesky-enhanced \
+        && mkdir -p ${N8N_USER_FOLDER}/nodes/node_modules \
+        && chown -R node:node ${N8N_USER_FOLDER}
+
+COPY --chown=node:node dist ${N8N_USER_FOLDER}/custom/n8n-nodes-bluesky-enhanced/dist
+COPY --chown=node:node index.js ${N8N_USER_FOLDER}/custom/n8n-nodes-bluesky-enhanced/
+COPY --chown=node:node package.json ${N8N_USER_FOLDER}/custom/n8n-nodes-bluesky-enhanced/
+
+# Install production dependencies into the custom folder, then copy as a real directory into nodes/node_modules
+RUN /bin/sh -lc 'npm install --omit=dev --ignore-scripts --no-audit --no-fund --prefix "${N8N_USER_FOLDER}"/custom/n8n-nodes-bluesky-enhanced && \
+        cd "${N8N_USER_FOLDER}"/custom/n8n-nodes-bluesky-enhanced && npm pack --silent'
+# Create a nodes workspace package.json referencing our custom package, then install
+USER root
+RUN /bin/sh -lc 'cat > "${N8N_USER_FOLDER}"/nodes/package.json <<EOF\n{\n  "name": "n8n-user-nodes",\n  "private": true,\n  "description": "User-installed n8n community nodes",\n  "license": "MIT",\n  "dependencies": {\n    "n8n-nodes-bluesky-enhanced": "file:../custom/n8n-nodes-bluesky-enhanced"\n  }\n}\nEOF\n && chown -R node:node "${N8N_USER_FOLDER}"/nodes'
+USER node
+RUN /bin/sh -lc 'npm install --omit=dev --ignore-scripts --no-audit --no-fund --prefix "${N8N_USER_FOLDER}"/nodes'
+
+# n8n default CMD/ENTRYPOINT remain from base image
