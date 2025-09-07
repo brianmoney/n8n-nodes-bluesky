@@ -61,3 +61,28 @@ Notes
 - Default user folder is /home/node/.n8n in the official image.
 - Do not use a custom aggregator; let n8n discover via nodes/node_modules.
 - Ensure package.json n8n block points to dist/*.js paths.
+
+## Dev workflow: @n8n/node-cli (recommended)
+
+This route starts a local n8n pointed at this package with auto-linking and hot reload. No Docker required.
+
+Prereqs
+- Node 18+
+- pnpm 9+
+
+Setup
+- pnpm install
+
+Run (hot reload)
+- pnpm dev
+
+What happens
+- TypeScript watcher compiles to `dist/`
+- `n8n-node dev` starts n8n and links this package as a custom node
+- Open http://localhost:5678 and use the node
+
+Build
+- pnpm build
+
+Troubleshooting
+- If the node doesn’t show, clear: `rm -rf ~/.n8n-node-cli/.n8n/custom` and re-run `pnpm dev`
