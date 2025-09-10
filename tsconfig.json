@@ -24,10 +24,16 @@
 	"include": [
 		"credentials/**/*",
 		"nodes/**/*",
+		"src/**/*",
 		"nodes/**/*.json",
 		"package.json",
 	],
 	"exclude": [
-		"nodes/**/BlueskyTestNode.node.ts"
+		"nodes/**/BlueskyTestNode.node.ts",
+		"nodes/Bluesky/V1/BlueskyV1.node.ts",
+		"nodes/Bluesky/V2/BlueskyV2.node.ts",
+		"nodes/Bluesky/V1/BlueskyV1.ts",
+		"nodes/Bluesky/V2/BlueskyV2.ts",
+		"nodes/Bluesky/V2/BlueskyV2.class.ts"
 	],
 }

@@ -1,5 +1,5 @@
 import { ComAtprotoServerCreateSession } from '@atproto/api';
-import { BlueskyV2 } from './BlueskyV2.node';
+import { BlueskyV2 } from './BlueskyV2';
 import { IExecuteFunctions, INodeTypeBaseDescription, INodeExecutionData } from 'n8n-workflow';
 
 // Define mocks for all agent methods that will be called by operations
@@ -188,7 +188,7 @@ describe('BlueskyV2', () => {
 			};
 			return Promise.resolve({ data: { did: 'test-did' } as ComAtprotoServerCreateSession.OutputSchema });
 		});
-		
+
 		// Clear call history for all operation mocks
 		mockPostInstance.mockClear();
 		mockDeletePostInstance.mockClear();
@@ -209,7 +209,7 @@ describe('BlueskyV2', () => {
 		mockListNotificationsInstance.mockClear();
 		mockGetUnreadCountInstance.mockClear();
 		mockUpdateSeenInstance.mockClear();
-		
+
 		// Clear list operation mocks
 		mockGraphListCreateInstance.mockClear();
 		mockGraphListPutInstance.mockClear();
@@ -287,15 +287,15 @@ describe('BlueskyV2', () => {
 		it('should create a post with media successfully', async () => {
 			// Setup specific mocks for this test (overriding beforeEach defaults)
 			(executeFunctions.getInputData as jest.Mock).mockReturnValue([
-				{ 
-					json: {}, 
-					binary: { 
-						imageData: { 
-							mimeType: 'image/png', 
-							fileName: 'test.png', 
-							fileSize: 12345 
-						} 
-					} 
+				{
+					json: {},
+					binary: {
+						imageData: {
+							mimeType: 'image/png',
+							fileName: 'test.png',
+							fileSize: 12345
+						}
+					}
 				}
 			]);
 
@@ -384,7 +384,7 @@ describe('BlueskyV2', () => {
 
 			// Assuming the operation should return something, even if not { success: true }
 			// For now, primarily check if the agent method was called.
-			// expect(result[0][0].json.success).toBe(true); 
+			// expect(result[0][0].json.success).toBe(true);
 			expect(mockLoginInstance).toHaveBeenCalled();
 			expect(mockDeletePostInstance).toHaveBeenCalledWith('at://did:plc:test-repo/app.bsky.feed.post/123');
 		});
@@ -630,7 +630,7 @@ describe('BlueskyV2', () => {
 				if (name === 'did') return 'did:plc:target-to-mute';
 				return null;
 			});
-			mockMuteInstance.mockResolvedValue({ success: true }); 
+			mockMuteInstance.mockResolvedValue({ success: true });
 
 			const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
 			expect(result[0][0].json.success).toBe(true);
@@ -833,9 +833,9 @@ describe('BlueskyV2', () => {
 							cid: 'bafy-original-post-cid'
 						},
 						parent: {
-							post: { 
+							post: {
 								uri: 'at://did:plc:original-author/app.bsky.feed.post/parentRkey',
-								cid: 'bafy-parent-cid' 
+								cid: 'bafy-parent-cid'
 							}
 						}
 					}
@@ -979,7 +979,7 @@ describe('BlueskyV2', () => {
 					if (name === 'operation') return 'listNotifications';
 					if (name === 'limit') return 25;
 					// unreadOnly and markRetrievedAsRead will use their default values (true)
-					if (name === 'unreadOnly') return defaultValue; // Should be true by default in BlueskyV2.node.ts
+					if (name === 'unreadOnly') return defaultValue; // Should be true by default in BlueskyV2
 					if (name === 'markRetrievedAsRead') return defaultValue; // Should be true by default
 					return null;
 				});
@@ -1019,13 +1019,13 @@ describe('BlueskyV2', () => {
 				mockUpdateSeenInstance.mockResolvedValue({}); // For markRetrievedAsRead
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				
+
 				// Expecting 2 unread notifications (no pagination item since cursor is undefined)
 				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/unread2')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/read1')).toBeUndefined();
-				
+
 				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
 					limit: 100, // API_PAGE_SIZE is 100, not 25
 					cursor: undefined,
@@ -1060,7 +1060,7 @@ describe('BlueskyV2', () => {
 								cid: 'bafy-all-cid-2',
 								author: { did: 'did:plc:analytics-author', handle: 'analytics.bsky.social' },
 								reason: 'follow',
-								isRead: true, 
+								isRead: true,
 								indexedAt: '2025-05-23T12:00:00.000Z'
 							}
 						],
@@ -1073,12 +1073,12 @@ describe('BlueskyV2', () => {
 				mockUpdateSeenInstance.mockResolvedValueOnce({});
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				
+
 				// Expecting 2 notifications (all of them)
 				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'at://did:plc:analytics-author/app.bsky.notification/all2')).toBeDefined();
-				
+
 				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
 					limit: 25,
 					cursor: undefined
@@ -1113,13 +1113,13 @@ describe('BlueskyV2', () => {
 				mockListNotificationsInstance.mockResolvedValueOnce(mockUnreadOnlyNoMarkResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				
+
 				expect(result[0]).toHaveLength(2); // Only unread notifications, no pagination
 				expect(result[0].find(item => item.json.uri === 'unread-nomark-1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'unread-nomark-2')).toBeDefined();
 
-				expect(mockListNotificationsInstance).toHaveBeenCalledWith({ 
-					limit: 100, // API_PAGE_SIZE 
+				expect(mockListNotificationsInstance).toHaveBeenCalledWith({
+					limit: 100, // API_PAGE_SIZE
 					cursor: undefined,
 				});
 				expect(mockUpdateSeenInstance).not.toHaveBeenCalled();
@@ -1147,7 +1147,7 @@ describe('BlueskyV2', () => {
 				mockListNotificationsInstance.mockResolvedValueOnce(mockAllNoMarkResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
-				
+
 				expect(result[0]).toHaveLength(2);
 				expect(result[0].find(item => item.json.uri === 'all-nomark-1')).toBeDefined();
 				expect(result[0].find(item => item.json.uri === 'all-nomark-2')).toBeDefined();
@@ -1505,7 +1505,7 @@ describe('BlueskyV2', () => {
 					uri: 'at://did:plc:test/app.bsky.graph.list/123',
 					cid: 'bafylist123',
 				};
-				
+
 				mockGraphListCreateInstance.mockResolvedValue(mockCreateResponse);
 
 				await node.execute.call(executeFunctions);
@@ -1536,7 +1536,7 @@ describe('BlueskyV2', () => {
 
 					cid: 'bafylist123',
 				};
-				
+
 				mockGraphListCreateInstance.mockResolvedValue(mockCreateResponse);
 
 				await node.execute.call(executeFunctions);
@@ -1567,7 +1567,7 @@ describe('BlueskyV2', () => {
 					uri: 'at://did:plc:test/app.bsky.graph.list/123',
 					cid: 'bafyupdated456',
 				};
-				
+
 				mockGraphListGetInstance.mockResolvedValue(mockGetResponse);
 				mockGraphListPutInstance.mockResolvedValue(mockUpdateResponse);
 
@@ -1593,7 +1593,7 @@ describe('BlueskyV2', () => {
 					if (name === 'listUri') return 'at://did:plc:test/app.bsky.graph.list/123';
 					return null;
 				});
-				
+
 				mockGraphListDeleteInstance.mockResolvedValue({});
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1616,7 +1616,7 @@ describe('BlueskyV2', () => {
 					if (name === 'cursor') return '';
 					return defaultValue;
 				});
-				
+
 				const mockListsResponse = {
 					data: {
 						lists: [
@@ -1636,7 +1636,7 @@ describe('BlueskyV2', () => {
 						cursor: 'next-cursor-value'
 					}
 				};
-				
+
 				mockGetListsInstance.mockResolvedValue(mockListsResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1660,7 +1660,7 @@ describe('BlueskyV2', () => {
 					if (name === 'cursor') return 'some-cursor-value';
 					return defaultValue;
 				});
-				
+
 				const mockListsResponse = {
 					data: {
 						lists: [
@@ -1671,7 +1671,7 @@ describe('BlueskyV2', () => {
 						]
 					}
 				};
-				
+
 				mockGetListsInstance.mockResolvedValue(mockListsResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1692,7 +1692,7 @@ describe('BlueskyV2', () => {
 					if (name === 'cursor') return '';
 					return defaultValue;
 				});
-				
+
 				const mockFeedResponse = {
 					data: {
 						feed: [
@@ -1714,7 +1714,7 @@ describe('BlueskyV2', () => {
 						cursor: 'next-feed-cursor'
 					}
 				};
-				
+
 				mockGetListFeedInstance.mockResolvedValue(mockFeedResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1744,7 +1744,7 @@ describe('BlueskyV2', () => {
 					uri: 'at://did:plc:test/app.bsky.graph.listitem/456',
 					cid: 'bafylistitem123',
 				};
-				
+
 				mockGraphListitemCreateInstance.mockResolvedValue(mockAddResponse);
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1767,7 +1767,7 @@ describe('BlueskyV2', () => {
 					if (name === 'listItemUri') return 'at://did:plc:test/app.bsky.graph.listitem/456';
 					return null;
 				});
-				
+
 				mockGraphListitemDeleteInstance.mockResolvedValue({});
 
 				const result = (await node.execute.call(executeFunctions)) as INodeExecutionData[][];
@@ -1790,7 +1790,7 @@ describe('BlueskyV2', () => {
 					if (name === 'description') return 'This is a test curated list';
 					return null;
 				});
-				
+
 				mockGraphListCreateInstance.mockRejectedValue(new Error('Failed to create list'));
 
 				await expect(node.execute.call(executeFunctions)).rejects.toThrow('Failed to create list');

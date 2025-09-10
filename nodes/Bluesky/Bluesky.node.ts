@@ -1,8 +1,8 @@
 import type { INodeTypeBaseDescription, IVersionedNodeType } from 'n8n-workflow';
 import { VersionedNodeType } from 'n8n-workflow';
 
-import { BlueskyV1 } from './V1/BlueskyV1.node';
-import { BlueskyV2 } from './V2/BlueskyV2.node';
+import { BlueskyV1 } from '../../src/bluesky/V1/BlueskyV1';
+import { BlueskyV2 } from '../../src/bluesky/V2/BlueskyV2';
 
 export class Bluesky extends VersionedNodeType {
 	constructor() {
