@@ -2,6 +2,9 @@
 
 # n8n-nodes-bluesky-enhanced
 
+[![npm version](https://img.shields.io/npm/v/n8n-nodes-bluesky-enhanced?logo=npm)](https://www.npmjs.com/package/n8n-nodes-bluesky-enhanced)
+[![npm downloads](https://img.shields.io/npm/dm/n8n-nodes-bluesky-enhanced)](https://www.npmjs.com/package/n8n-nodes-bluesky-enhanced)
+
 This is a fork of [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/n8n-nodes-bluesky) with enhanced functionality for the Bluesky social network.
 
 ## Key Features
