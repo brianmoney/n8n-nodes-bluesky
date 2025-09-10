@@ -4,9 +4,25 @@
 **Package:** n8n-nodes-bluesky  
 **Bluesky API Version:** @atproto/api 0.15.8
 
+## Update — September 10, 2025
+
+Recent probing of Bluesky’s public XRPC endpoints shows the video routes are present and require authentication (401 AuthMissing), not returning XRPCNotSupported anymore:
+
+```
+GET https://bsky.social/xrpc/app.bsky.video.getUploadLimits   → 401 AuthMissing
+GET https://bsky.social/xrpc/app.bsky.video.getJobStatus      → 401 AuthMissing
+HEAD https://bsky.social/xrpc/app.bsky.video.uploadVideo      → 401 AuthMissing
+```
+
+Implication: endpoints appear deployed; functional behavior (processing pipeline, job flow) now needs to be validated with authenticated requests.
+
+Next steps:
+- Test with a valid session (AtpAgent) to call `getUploadLimits`, then `uploadVideo`, then poll `getJobStatus`.
+- If job completes and returns a playlist/thumbnail, update this report and node behavior to fully enable video embeds.
+
 ## Summary
 
-Video uploads to Bluesky are **technically successful but functionally broken**. Videos upload as binary blobs but display as "Video not found" on the Bluesky platform.
+Video uploads to Bluesky are **technically successful but functionally broken** (as of May 25, 2025). Videos upload as binary blobs but display as "Video not found" on the Bluesky platform. As of Sep 10, 2025, the video endpoints exist (401 AuthMissing without auth); end-to-end behavior with auth is unverified.
 
 ## Root Cause
 
@@ -16,7 +32,7 @@ Bluesky requires videos to be processed through a specialized video processing p
 - Processes videos for different quality levels
 - Provides proper video embed structure (`app.bsky.embed.video#view`)
 
-**The video processing APIs are not yet deployed on Bluesky's servers**, despite the infrastructure existing in their codebase.
+Previously: the video processing APIs were not deployed (XRPCNotSupported). Current probes indicate deployment with auth required; processing functionality still needs confirmation.
 
 ## Current Status
 
@@ -29,7 +45,8 @@ Bluesky requires videos to be processed through a specialized video processing p
 ### ❌ What Doesn't Work
 - **Video display** - All uploaded videos show "Video not found" 
 - **Video processing** - No thumbnail generation or playlist creation
-- **Server APIs** - All video endpoints return `XRPCNotSupported` (404)
+- **Server APIs (May 25, 2025)** - Returned `XRPCNotSupported` (404)
+- **Server APIs (Sep 10, 2025)** - Endpoints present (401 without auth); functional status TBD
 
 ### 🔍 Confirmed via Testing
 ```
@@ -38,6 +55,11 @@ Video API Endpoint Status (May 25, 2025):
 • app.bsky.video.getUploadLimits: XRPCNotSupported ❌  
 • app.bsky.video.getJobStatus: XRPCNotSupported ❌
 • com.atproto.repo.uploadBlob: Working ✅
+
+Video API Endpoint Status (Sep 10, 2025, unauthenticated):
+• app.bsky.video.uploadVideo: AuthMissing (401) ↔︎ endpoint exists
+• app.bsky.video.getUploadLimits: AuthMissing (401)
+• app.bsky.video.getJobStatus: AuthMissing (401)
 ```
 
 ## Technical Details

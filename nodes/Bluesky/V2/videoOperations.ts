@@ -1,10 +1,10 @@
 /**
  * Video upload operations for Bluesky AT Protocol
  * Handles video uploads, processing status checks, and embedding
- * 
+ *
  * Status Update (May 2025):
  * - Video infrastructure is being actively developed by Bluesky
- * - Database migrations and video processing pipeline exist in the codebase  
+ * - Database migrations and video processing pipeline exist in the codebase
  * - Video APIs exist in client but server implementation NOT YET DEPLOYED (confirmed via testing)
  * - All video APIs return XRPCNotSupported (404) as of May 25, 2025
  * - Current approach uses blob upload but videos show "Video not found" on Bluesky platform
@@ -15,7 +15,7 @@ import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
 
 /**
  * Upload a video to Bluesky using the current available infrastructure
- * 
+ *
  * This implementation follows the patterns observed in Bluesky's codebase:
  * - Uses blob upload as the foundation (working)
  * - Structures video embeds according to app.bsky.embed.video schema
@@ -79,19 +79,19 @@ export async function uploadVideo(
 		// First try the proper video upload API (optimistic approach)
 		try {
 			console.log(`[INFO] Attempting proper video upload API...`);
-			
+
 			// Check if video APIs are now available
 			if (typeof agent.api?.app?.bsky?.video?.uploadVideo === 'function') {
 				const videoUpload = await agent.api.app.bsky.video.uploadVideo(binaryData, {
 					encoding: 'video/mp4',
 				});
-				
+
 				if (videoUpload.success) {
 					console.log(`[SUCCESS] Video processing initiated via video API`);
-					
+
 					// The response should contain job status information
 					const jobStatus = videoUpload.data.jobStatus;
-					
+
 					// For now, we'll convert this to the expected blob format
 					// Once the processing completes, this would contain the proper blob reference
 					return {
@@ -110,10 +110,10 @@ export async function uploadVideo(
 			console.log(`[INFO] Video API not yet available: ${videoApiError.message}`);
 			// Fall through to blob upload approach
 		}
-		
+
 		// Fallback to blob upload (current working approach)
 		console.log(`[INFO] Using blob upload for video (video processing API not yet available)`);
-		
+
 		const uploadResponse = await agent.api.com.atproto.repo.uploadBlob(binaryData, {
 			encoding: binaryMetadata.mimeType,
 		});
@@ -124,7 +124,7 @@ export async function uploadVideo(
 
 		console.log(`[INFO] Video blob upload completed successfully`);
 		console.log(`[WARNING] Video will show "Video not found" on Bluesky platform`);
-		console.log(`[STATUS] Video processing APIs not yet deployed (confirmed XRPCNotSupported as of May 25, 2025)`);
+		console.log(`[STATUS] Video APIs previously XRPCNotSupported (May 25, 2025). As of Sep 10, 2025 unauthenticated probes return 401 AuthMissing. Try authenticated getUploadLimits/uploadVideo/getJobStatus to confirm processing availability.`);
 		console.log(`[INFO] Infrastructure exists in Bluesky codebase - server deployment pending`);
 
 		return {
@@ -143,7 +143,7 @@ export async function uploadVideo(
 
 /**
  * Get video upload limits for the authenticated user
- * 
+ *
  * This function now attempts to use the proper API first, with fallback to default limits
  */
 export async function getVideoUploadLimits(agent: BskyAgent): Promise<{
@@ -157,7 +157,7 @@ export async function getVideoUploadLimits(agent: BskyAgent): Promise<{
 		// Try to use the proper video upload limits API
 		if (typeof agent.api?.app?.bsky?.video?.getUploadLimits === 'function') {
 			console.log(`[INFO] Attempting to get video upload limits via API...`);
-			
+
 			const limits = await agent.api.app.bsky.video.getUploadLimits();
 			if (limits.success) {
 				console.log(`[SUCCESS] Retrieved video upload limits from API`);
@@ -168,7 +168,7 @@ export async function getVideoUploadLimits(agent: BskyAgent): Promise<{
 		console.log(`[INFO] Video upload limits API not yet available: ${error.message}`);
 		// Fall through to default limits
 	}
-	
+
 	// Return default limits based on current understanding and AT Protocol blob upload specifications
 	return {
 		canUpload: true,
