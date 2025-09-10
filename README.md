@@ -236,3 +236,36 @@ MIT
 ## Acknowledgments
 
 This project is based on [@muench-dev/n8n-nodes-bluesky](https://github.com/muench-dev/n8n-nodes-bluesky) by Christian Münch.
+
+## Development (local testing with @n8n/node-cli)
+
+Structure rule to avoid duplicate registration:
+
+- Keep only the wrapper node under `nodes/Bluesky/Bluesky.node.ts`.
+- Place implementation classes for versions under `src/` (for example: `src/bluesky/V1/BlueskyV1.ts`, `src/bluesky/V2/BlueskyV2.ts`).
+- Do not place additional `.node.ts` files for versions inside `nodes/`, or n8n will auto-discover them as separate nodes.
+
+Quick dev loop using @n8n/node-cli:
+
+```bash
+pnpm install
+pnpm build            # builds the node (uses n8n-node build)
+pnpm dev:internal     # runs n8n-node dev and links the node for testing
+```
+
+Alternative: manual local run on port 5680 with this repo as a custom extension path:
+
+```bash
+pnpm build
+N8N_PORT=5680 \
+N8N_HOST=0.0.0.0 \
+N8N_LISTEN_ADDRESS=0.0.0.0 \
+N8N_CUSTOM_EXTENSIONS="$PWD" \
+pnpm dlx n8n start
+```
+
+Verification endpoints:
+
+- Health: `http://localhost:5680/health` (200)
+- Catalog: `http://localhost:5680/types/nodes.json`
+  - Expect exactly one entry with `name: "bluesky"` and none with `name: "undefined"`.

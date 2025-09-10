@@ -5,7 +5,41 @@ All notable changes to the n8n-nodes-bluesky-enhanced package will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] - 2025-09-10
+
+### Added
+- Reply operation: media and website card support (commit 99e230e)
+  - Attach images (up to 4) or a single video to replies; prevents mixing images and video in one reply
+  - Website cards in replies with optional Open Graph fetch (title/description/thumbnail) and thumbnail upload
+  - Alt text for media; image aspect ratio included when available
+
+### Changed
+- Refactored media handling for posts and replies
+  - Centralized helpers to process media items and website cards, clearer validation and errors
+  - More robust binary checks and Buffer validation before uploads
+  - Cleaner embed assembly for images and video
+
+### Developer Experience
+- Adopted @n8n/node-cli for local dev, lint, build, and release workflows (scripts added)
+- Fixed editor menu export: `index.js` now exports class constructors from `dist` so n8n can read node/credentials descriptions
+- Prevent node auto-discovery duplicates: keep only the wrapper node under `nodes/Bluesky/Bluesky.node.ts`; move V1/V2 classes to `src/`
+
+## [1.6.0] - 2025-09-10
+
+### Fixed
+- Binary Media Upload Fix: ensure images are correctly included in posts
+  - Enhanced binary data validation and buffer handling
+  - Improved error reporting with precise messages when binary data is missing
+  - Extended debug logging across media upload and post creation
+- Aspect Ratio for Image Uploads: maintain correct display in Bluesky clients
+  - Added `image-size` dependency to detect dimensions from buffers
+  - Updated `binaryUploadHelper.ts` to return optional `{ width, height }` aspectRatio per image with graceful fallback
+  - Updated `postOperations.ts` to include aspectRatio in `app.bsky.embed.images` when available
+
+### Technical
+- Build and lint pass with no errors; backwards compatible changes only
+
+## [1.5.0]
 
 ### Added
 - **List Operations**: Complete list management functionality for organizing users and content
